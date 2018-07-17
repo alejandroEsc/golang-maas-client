@@ -1,7 +1,7 @@
 // Copyright 2012-2016 Canonical Ltd.
 // Licensed under the LGPLv3, see LICENCE File for details.
 
-package maasapiv2
+package v2
 
 const (
 	// NodeStatus* Values represent the vocabulary of a Node‘s possible statuses.

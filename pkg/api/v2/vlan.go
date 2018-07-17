@@ -1,7 +1,7 @@
 // Copyright 2016 Canonical Ltd.
 // Licensed under the LGPLv3, see LICENCE File for details.
 
-package maasapiv2
+package v2
 
 // VLAN represents an instance of a Virtual LAN. VLANs are a common way to
 // create logically separate networks using the same physical infrastructure.

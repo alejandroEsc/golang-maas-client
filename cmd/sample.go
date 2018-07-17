@@ -64,11 +64,11 @@ func main() {
 
 func machines(maas *api.MAAS) {
 
-	params := maasapiv2.MachinesParams(maasapiv2.MachinesArgs{})
+	params := v2.MachinesParams(v2.MachinesArgs{})
 	rawMachines, err := maas.Get("machines", "", params.Values)
 	checkError(err)
 
-	var machines []maasapiv2.Machine
+	var machines []v2.Machine
 	err = json.Unmarshal(rawMachines, &machines)
 	checkError(err)
 
@@ -97,7 +97,7 @@ func files(maas *api.MAAS) {
 
 	// Upload a file.
 	fmt.Println("Uploading a file...")
-	params := maasapiv2.FileParams(maasapiv2.AddFileArgs{Filename: fileName})
+	params := v2.FileParams(v2.AddFileArgs{Filename: fileName})
 
 	_, err = maas.PostFile("files", "", params.Values, fileContent)
 	checkError(err)
@@ -106,7 +106,7 @@ func files(maas *api.MAAS) {
 	// Fetch the file.
 	fileBytes, err := maas.Get("files/"+fileName, "", nil)
 	checkError(err)
-	var file maasapiv2.File
+	var file v2.File
 	err = json.Unmarshal(fileBytes, &file)
 
 	if bytes.Compare([]byte(file.Content), fileContent) != 0 {
@@ -116,7 +116,7 @@ func files(maas *api.MAAS) {
 	fmt.Println("Got file.")
 
 	// Fetch list of filesResource.
-	var listFiles []maasapiv2.File
+	var listFiles []v2.File
 	listBytes, err := maas.Get("files", "", nil)
 	err = json.Unmarshal(listBytes, &listFiles)
 	checkError(err)

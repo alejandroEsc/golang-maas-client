@@ -1,7 +1,7 @@
 // Copyright 2016 Canonical Ltd.
 // Licensed under the LGPLv3, see LICENCE File for details.
 
-package maasapiv2
+package v2
 
 type Filesystem struct {
 	// There is no need for ControllerInterface based parsing of filesystems until we need it.

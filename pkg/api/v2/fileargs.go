@@ -1,4 +1,4 @@
-package maasapiv2
+package v2
 
 import (
 	"io"

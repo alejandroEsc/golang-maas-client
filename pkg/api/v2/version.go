@@ -1,4 +1,4 @@
-package maasapiv2
+package v2
 
 type Version struct {
 	Capabilities []string `json:"capabilities,omitempty"`

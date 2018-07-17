@@ -1,7 +1,7 @@
 // Copyright 2016 Canonical Ltd.
 // Licensed under the LGPLv3, see LICENCE File for details.
 
-package maasapiv2
+package v2
 
 // Zone represents a physical Zone that a MachineInterface is in. The meaning of a
 // physical Zone is up to you: it could identify e.g. a server rack, a network,

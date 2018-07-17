@@ -1,4 +1,4 @@
-package maasapiv2
+package v2
 
 // ConstraintMatches provides a way for the caller of AllocateMachine to determine
 //.how the allocated MachineInterface matched the storage and interfaces constraints specified.
