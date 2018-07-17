@@ -3,6 +3,10 @@ clean: ## clean build output
 
 go-clean: ## Invoke gofmt's "simplify" option to streamline the source code.
 	gofmt -w -s ./pkg
+	gofmt -w -s ./pkg/api
+	gofmt -w -s ./pkg/api/client
+	gofmt -w -s ./pkg/api/util
+	gofmt -w -s ./pkg/api/v2
 	gofmt -w -s ./cmd
 	goimports -w $(shell git ls-files "**/*.go" "*.go" | grep -v -e "vendor" | xargs echo)
 
