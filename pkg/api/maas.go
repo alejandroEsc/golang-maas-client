@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/juju/gomaasapi/pkg/api/client"
-	"github.com/juju/gomaasapi/pkg/api/util"
-	v2 "github.com/juju/gomaasapi/pkg/api/v2"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	v2 "github.com/alejandroEsc/golang-maas-client/pkg/api/v2"
 	"github.com/juju/utils/set"
 	"github.com/juju/version"
 )

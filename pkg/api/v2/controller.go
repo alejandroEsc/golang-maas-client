@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 
 	"github.com/juju/errors"
-	"github.com/juju/gomaasapi/pkg/api/client"
-	"github.com/juju/gomaasapi/pkg/api/util"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/juju/loggo"
 	"github.com/juju/utils/set"
 	"github.com/juju/version"

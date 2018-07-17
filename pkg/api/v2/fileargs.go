@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/juju/errors"
-	"github.com/juju/gomaasapi/pkg/api/util"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 )
 
 // AddFileArgs is a argument struct for passing information into AddFile.

@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/juju/gomaasapi/pkg/api/util"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 )
 
 const (

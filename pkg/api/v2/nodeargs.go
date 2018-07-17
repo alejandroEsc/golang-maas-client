@@ -1,6 +1,6 @@
 package maasapiv2
 
-import "github.com/juju/gomaasapi/pkg/api/util"
+import "github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 
 // CreateNodeArgs is a argument struct for passing information into CreateNode.
 type CreateNodeArgs struct {

@@ -9,7 +9,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/juju/gomaasapi/pkg/api/util"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/stretchr/testify/assert"
 )
 

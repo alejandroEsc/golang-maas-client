@@ -13,8 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/juju/gomaasapi/pkg/api"
-	"github.com/juju/gomaasapi/pkg/api/v2"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api"
+	"github.com/alejandroEsc/golang-maas-client/pkg/api/v2"
 	"github.com/spf13/viper"
 )
 
