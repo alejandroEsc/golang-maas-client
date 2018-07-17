@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 )
 
 const (

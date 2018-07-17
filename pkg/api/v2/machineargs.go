@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 	"github.com/juju/schema"
 	"github.com/juju/utils/set"
 )

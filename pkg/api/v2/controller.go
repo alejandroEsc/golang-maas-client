@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"sync/atomic"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 	"github.com/juju/loggo"
 	"github.com/juju/utils/set"
 	"github.com/juju/version"

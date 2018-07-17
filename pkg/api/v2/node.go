@@ -10,9 +10,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 )
 
 // Nodes are now known as nodes...? should reconsider this struct.

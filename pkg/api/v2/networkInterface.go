@@ -9,9 +9,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 )
 
 // NetworkInterface represents a physical or virtual network interface on a MachineInterface.

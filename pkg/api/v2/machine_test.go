@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/juju/errors"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
+	"github.com/juju/errors"
 	"github.com/stretchr/testify/assert"
 )
 
