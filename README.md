@@ -1,5 +1,4 @@
-
-#Another Golang MAAS API Client library
+# Another Golang MAAS API Client library
 
 A lighter version fo the `MAAS API client library` originally from [https://github.com/juju/gomaasapi](https://github.com/juju/gomaasapi]).
 The Developers there have done and continue doing amazing work. Please review their solution before using this.
