@@ -5,7 +5,7 @@ type MachineOp string
 const (
 
 	// Comission begins commissioning process for a machine.
-	MachineComission MachineOp = "comission"
+	MachineComission MachineOp = "commission"
 	// Deploy an operating system to a machine.
 	MachineDeploy MachineOp = "deploy"
 	// Details obtains various system details.
