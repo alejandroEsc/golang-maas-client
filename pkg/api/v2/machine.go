@@ -48,6 +48,8 @@ type Machine struct {
 	PhysicalBlockDevices []*BlockDevice `json:"physicalblockdevice_set,omitempty"`
 	// BlockDevices returns all the physical and virtual block devices on the MachineInterface.
 	BlockDevices []*BlockDevice `json:"blockdevice_set,omitempty"`
+	Kernel      string   `json:"hwe_kernel,omitempty"`
+
 }
 
 func (m *Machine) updateFrom(other *Machine) {
