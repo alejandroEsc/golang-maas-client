@@ -27,6 +27,9 @@ type MachinesArgs struct {
 type ReleaseMachinesArgs struct {
 	SystemIDs []string
 	Comment   string
+	Erase   bool
+	SecureErase bool
+	QuickErase bool
 }
 
 // AllocateMachineArgs is an argument struct for passing args into MachineInterface.Allocate.
@@ -62,7 +65,12 @@ type DeployMachineArgs struct {
 	UserData     string
 	DistroSeries string
 	Kernel       string
+	AgentName   string
+	BridgeAll   bool
+	BridgeSTP   bool
+	BridgeFD    int
 	Comment      string
+	InstallRackd bool
 }
 
 // CreatemachineDeviceArgs is an argument structure for Machine.CreateNode.
@@ -75,6 +83,15 @@ type CreateMachineNodeArgs struct {
 	MACAddress    string
 	Subnet        *Subnet
 	VLAN          *VLAN
+}
+
+type CommissionMachineArgs struct {
+	EnableSSH            bool
+	SkipBMCConfig        bool
+	SkipNetworking       bool
+	SkipStorage          bool
+	CommissioningScripts string
+	TestingScript        string
 }
 
 // Validate ensures that all required Values are non-emtpy.
@@ -190,6 +207,9 @@ func ReleaseMachinesParams(args ReleaseMachinesArgs) *util.URLParams {
 	params := util.NewURLParams()
 	params.MaybeAddMany("machines", args.SystemIDs)
 	params.MaybeAdd("comment", args.Comment)
+	params.MaybeAddBool("erase", args.Erase)
+	params.MaybeAddBool("secure_erase", args.SecureErase)
+	params.MaybeAddBool("quick_erase", args.QuickErase)
 	return params
 }
 
@@ -198,7 +218,23 @@ func DeploytMachineParams(args DeployMachineArgs) *util.URLParams {
 	params.MaybeAdd("user_data", args.UserData)
 	params.MaybeAdd("distro_series", args.DistroSeries)
 	params.MaybeAdd("hwe_kernel", args.Kernel)
+	params.MaybeAdd("agent_name", args.AgentName)
+	params.MaybeAddBool("bridge_all", args.BridgeAll)
+	params.MaybeAddBool("bridge_stp", args.BridgeSTP)
+	params.MaybeAddInt("bridge_fd", args.BridgeFD)
 	params.MaybeAdd("comment", args.Comment)
+	params.MaybeAddBool("install_rackd", args.InstallRackd)
+	return params
+}
+
+func ComssionMachineParams( args CommissionMachineArgs) *util.URLParams {
+	params := util.NewURLParams()
+	params.MaybeAddBool("enable_ssh", args.EnableSSH)
+	params.MaybeAddBool("skip_bmc_config", args.SkipBMCConfig)
+	params.MaybeAddBool("skip_networking", args.SkipNetworking)
+	params.MaybeAddBool("skip_storage", args.SkipStorage)
+	params.MaybeAdd("commissioning_scripts", args.CommissioningScripts)
+	params.MaybeAdd("testing_scripts", args.TestingScript)
 	return params
 }
 
