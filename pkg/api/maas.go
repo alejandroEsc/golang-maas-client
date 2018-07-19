@@ -36,7 +36,6 @@ func NewMASS(baseURL string, apiVersion string, apiKey string) (*MAAS, error) {
 	default:
 		return nil, util.NewUnsupportedVersionError("version is not supported: %s", apiVersion)
 	}
-
 }
 
 func (m *MAAS) Get(path string, op string, params url.Values) ([]byte, error) {

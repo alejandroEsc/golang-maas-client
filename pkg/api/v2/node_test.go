@@ -24,7 +24,7 @@ func TestReadNodesBadSchema(t *testing.T) {
 
 func TestReadNodes(t *testing.T) {
 	var devices []Node
-	err = json.Unmarshal([]byte(devicesResponse), &devices)
+	err = json.Unmarshal([]byte(nodesResponse), &devices)
 	assert.Nil(t, err)
 
 	assert.Len(t, devices, 1)
@@ -180,7 +180,7 @@ func TestNodeDeleteUnknown(t *testing.T) {
 
 func getServerAndNode(t *testing.T) (*client.SimpleTestServer, *Node) {
 	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 
 	devices, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)
@@ -189,7 +189,7 @@ func getServerAndNode(t *testing.T) (*client.SimpleTestServer, *Node) {
 }
 
 const (
-	deviceResponse = `
+	nodeResponse = `
     {
         "Zone": {
             "Description": "",
@@ -278,5 +278,5 @@ const (
         ]
     }
     `
-	devicesResponse = "[" + deviceResponse + "]"
+	nodesResponse = "[" + nodeResponse + "]"
 )

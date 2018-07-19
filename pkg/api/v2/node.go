@@ -28,7 +28,7 @@ type Node struct {
 	// MachineInterface.
 	Parent string `json:"Parent,omitempty"`
 	// Owner is the username of the user that created the Node.
-	Owner       string   `json:"owner,omitempty"`
+	Owner       string   `json:"Owner,omitempty"`
 	IPAddresses []string `json:"ip_addresses,omitempty"`
 	// InterfaceSet returns all the interfaces for the NodeInterface.
 	InterfaceSet []*NetworkInterface `json:"interface_set,omitempty"`

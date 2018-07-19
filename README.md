@@ -9,6 +9,12 @@ calls are more direct and there are/will be less helper code. We also leverage g
 making use of json marshalling and tags.
 
 
+# Project Status
+Alpha
+
+Current status is alpha. Expect breaking changes for a while as things progress.
+
+
 # Run sample code
 First export variables that are particular to your maas setup, e.g.,
 

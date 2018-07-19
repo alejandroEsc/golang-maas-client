@@ -40,7 +40,7 @@ const (
 	MachineRestoreNetworkConfig MachineOp = "restore_networking_configuration"
 	// Reset a machine's storage options to its initial state.
 	MachineRestoreStorageConfig MachineOp = "restore_storage_configuration"
-	// Set key/value data for the current owner.
+	// Set key/value data for the current Owner.
 	MachineSetOwnerData MachineOp = "set_owner_data"
 	// Changes the storage layout on the machine.
 	MachineSetStorageLayout MachineOp = "set_storage_layout"

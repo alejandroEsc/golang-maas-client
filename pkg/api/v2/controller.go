@@ -150,7 +150,7 @@ func (c Controller) Put(path string, params url.Values) ([]byte, error) {
 	return bytes, nil
 }
 
-func (c Controller) Post(path, op string, params url.Values) ([]byte, error) {
+func (c *Controller) Post(path, op string, params url.Values) ([]byte, error) {
 	bytes, err := c.postRaw(path, op, params, nil)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ func (c Controller) Post(path, op string, params url.Values) ([]byte, error) {
 	return bytes, nil
 }
 
-func (c Controller) PostFile(path, op string, params url.Values, fileContent []byte) ([]byte, error) {
+func (c *Controller) PostFile(path, op string, params url.Values, fileContent []byte) ([]byte, error) {
 	// Only one File is ever sent at a time.
 	files := map[string][]byte{"file": fileContent}
 	return c.postRaw(path, op, params, files)
@@ -185,7 +185,7 @@ func (c *Controller) postRaw(path, op string, params url.Values, files map[strin
 	return bytes, nil
 }
 
-func (c Controller) Delete(path string) error {
+func (c *Controller) Delete(path string) error {
 	path = util.EnsureTrailingSlash(path)
 	url := &url.URL{Path: path}
 	requestID := nextRequestID()
@@ -200,7 +200,7 @@ func (c Controller) Delete(path string) error {
 	return nil
 }
 
-func (c Controller) Get(path string, op string, params url.Values) ([]byte, error) {
+func (c *Controller) Get(path string, op string, params url.Values) ([]byte, error) {
 	path = util.EnsureTrailingSlash(path)
 	url := &url.URL{Path: path}
 	requestID := nextRequestID()

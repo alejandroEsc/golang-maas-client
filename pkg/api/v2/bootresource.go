@@ -11,7 +11,6 @@ import (
 
 type BootResource struct {
 	// Add the ControllerInterface in when we need to do things with the BootResource.
-	// ControllerInterface ControllerInterface
 	ResourceURI  string `json:"resource_uri,omitempty"`
 	ID           int    `json:"ID,omitempty"`
 	Name         string `json:"Name,omitempty"`

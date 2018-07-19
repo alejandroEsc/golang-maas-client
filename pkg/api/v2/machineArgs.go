@@ -25,11 +25,11 @@ type MachinesArgs struct {
 // ReleaseMachinesArgs is an argument struct for passing the MachineInterface system IDs
 // and an optional comment into the ReleaseMachines method.
 type ReleaseMachinesArgs struct {
-	SystemIDs []string
-	Comment   string
-	Erase   bool
+	SystemIDs   []string
+	Comment     string
+	Erase       bool
 	SecureErase bool
-	QuickErase bool
+	QuickErase  bool
 }
 
 // AllocateMachineArgs is an argument struct for passing args into MachineInterface.Allocate.
@@ -65,10 +65,10 @@ type DeployMachineArgs struct {
 	UserData     string
 	DistroSeries string
 	Kernel       string
-	AgentName   string
-	BridgeAll   bool
-	BridgeSTP   bool
-	BridgeFD    int
+	AgentName    string
+	BridgeAll    bool
+	BridgeSTP    bool
+	BridgeFD     int
 	Comment      string
 	InstallRackd bool
 }
@@ -227,7 +227,7 @@ func DeploytMachineParams(args DeployMachineArgs) *util.URLParams {
 	return params
 }
 
-func ComssionMachineParams( args CommissionMachineArgs) *util.URLParams {
+func ComssionMachineParams(args CommissionMachineArgs) *util.URLParams {
 	params := util.NewURLParams()
 	params.MaybeAddBool("enable_ssh", args.EnableSSH)
 	params.MaybeAddBool("skip_bmc_config", args.SkipBMCConfig)

@@ -326,7 +326,7 @@ func TestNetworkInterfaceUpdateGood(t *testing.T) {
 
 func getServerAndNewInterface(t *testing.T) (*client.SimpleTestServer, *NetworkInterface) {
 	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 
 	nodes, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)

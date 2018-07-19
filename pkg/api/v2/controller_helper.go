@@ -216,35 +216,17 @@ func (c *Controller) CreateNode(args CreateNodeArgs) (*Node, error) {
 // Machines returns a list of machines that match the params.
 func (c *Controller) Machines(args MachinesArgs) ([]Machine, error) {
 	params := MachinesParams(args)
-	// At the moment the maas API doesn't support filtering by Owner
-	// data so we do that ourselves below.
 	source, err := c.Get("machines", "", params.Values)
 	if err != nil {
 		return nil, util.NewUnexpectedError(err)
 	}
-	result := make([]Machine, 0)
 	var machines []Machine
 	err = json.Unmarshal(source, &machines)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, m := range machines {
-		if ownerDataMatches(m.OwnerData, args.OwnerData) {
-			m.Controller = c
-
-			resultIface := make([]*NetworkInterface, 0)
-			for _, i := range m.InterfaceSet {
-				i.Controller = c
-				resultIface = append(resultIface, i)
-			}
-			m.InterfaceSet = resultIface
-
-			result = append(result, m)
-		}
-	}
-
-	return result, nil
+	return machines, nil
 }
 
 // AddFile adds or replaces the Content of the specified Filename.
@@ -326,8 +308,6 @@ func (c *Controller) AllocateMachine(args AllocateMachineArgs) (*Machine, Constr
 	if err != nil {
 		return nil, matches, err
 	}
-	machine.Controller = c
-
 	err = json.Unmarshal(result, &source)
 	if err != nil {
 		return nil, matches, err
@@ -365,5 +345,91 @@ func (c *Controller) ReleaseMachines(args ReleaseMachinesArgs) error {
 		return util.NewUnexpectedError(err)
 	}
 
+	return nil
+}
+
+// Deploy implements Machine.
+func (c *Controller) Deploy(m *Machine, args DeployMachineArgs) error {
+	params := DeploytMachineParams(args)
+	result, err := c.Post(m.ResourceURI, "deploy", params.Values)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound, http.StatusConflict:
+				return errors.Wrap(err, util.NewBadRequestError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			case http.StatusServiceUnavailable:
+				return errors.Wrap(err, util.NewCannotCompleteError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+
+	var machine *Machine
+	err = json.Unmarshal(result, &machine)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	m.updateFrom(machine)
+	return nil
+}
+
+// Delete implements Device.
+func (c *Controller) DeleteDevice(d Device) error {
+	err := c.Delete(d.ResourceURI)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound:
+				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+	return nil
+}
+
+// Devices implements Controller.
+func (c *Controller) Devices(args DevicesArgs) ([]Device, error) {
+	params := GetDeviceParams(args)
+	source, err := c.Get("devices", "", params.Values)
+	if err != nil {
+		return nil, util.NewUnexpectedError(err)
+	}
+
+	devices := make([]Device, 0)
+	err = json.Unmarshal(source, &devices)
+	if err != nil {
+		return nil, err
+	}
+
+	return devices, nil
+}
+
+// SetOwnerData updates the key/value data stored for this object
+// with the Values passed in. Existing keys that aren't specified
+// in the map passed in will be left in place; to clear a key set
+// its value to "". All Owner data is cleared when the object is
+// released.
+func (c *Controller) SetOwnerData(m *Machine, ownerData map[string]string) error {
+	params := make(url.Values)
+	for key, value := range ownerData {
+		params.Add(key, value)
+	}
+	result, err := c.Post(m.ResourceURI, "set_owner_data", params)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	var machine *Machine
+	err = json.Unmarshal(result, &machine)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	m.updateFrom(machine)
 	return nil
 }

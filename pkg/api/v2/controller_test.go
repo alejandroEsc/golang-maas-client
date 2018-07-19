@@ -237,7 +237,7 @@ func TestControllerBootResources(t *testing.T) {
 
 func TestControllerNodes(t *testing.T) {
 	server = client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -251,7 +251,7 @@ func TestControllerNodes(t *testing.T) {
 
 func TestControllerNodesArgs(t *testing.T) {
 	server = client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -276,10 +276,10 @@ func TestControllerNodesArgs(t *testing.T) {
 
 func TestControllerCreateNode(t *testing.T) {
 	server = client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
-	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusOK, deviceResponse)
+	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusOK, nodeResponse)
 	server.Start()
 	defer server.Close()
 
@@ -293,7 +293,7 @@ func TestControllerCreateNode(t *testing.T) {
 
 func TestControllerCreateNodeMissingAddress(t *testing.T) {
 	server = client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, devicesResponse)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -323,7 +323,7 @@ func TestControllerCreateNodeBadRequest(t *testing.T) {
 
 func TestControllerCreateNodeArgs(t *testing.T) {
 	server = client.NewSimpleServer()
-	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusOK, deviceResponse)
+	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusOK, nodeResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()

@@ -4,20 +4,11 @@
 package v2
 
 import (
-	"net/http"
-	"net/url"
-
-	"encoding/json"
-
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/juju/errors"
 )
 
 // MachineInterface represents a physical MachineInterface.
 type Machine struct {
-	Controller *Controller `json:"-"`
-
 	ResourceURI string   `json:"resource_uri,omitempty"`
 	SystemID    string   `json:"system_id,omitempty"`
 	Hostname    string   `json:"Hostname,omitempty"`
@@ -74,7 +65,6 @@ func (m *Machine) updateFrom(other *Machine) {
 func (m *Machine) Interface(id int) *NetworkInterface {
 	for _, iface := range m.InterfaceSet {
 		if iface.ID == id {
-			iface.Controller = m.Controller
 			return iface
 		}
 	}
@@ -99,106 +89,6 @@ func (m *Machine) BlockDevice(id int) *BlockDevice {
 		}
 	}
 	return nil
-}
-
-// Nodes implements Machine.
-func (m *Machine) Nodes(args NodesArgs) ([]Node, error) {
-	// Perhaps in the future, maas will give us a way to query just for the
-	// nodes for a particular Parent.
-	nodes, err := m.Controller.Nodes(args)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	result := make([]Node, 0)
-	for _, n := range nodes {
-		if n.Parent == m.SystemID {
-			result = append(result, n)
-		}
-	}
-	return result, nil
-}
-
-// Deploy implements Machine.
-func (m *Machine) Deploy(args DeployMachineArgs) error {
-	params := DeploytMachineParams(args)
-	result, err := m.Controller.Post(m.ResourceURI, "deploy", params.Values)
-	if err != nil {
-		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
-			switch svrErr.StatusCode {
-			case http.StatusNotFound, http.StatusConflict:
-				return errors.Wrap(err, util.NewBadRequestError(svrErr.BodyMessage))
-			case http.StatusForbidden:
-				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
-			case http.StatusServiceUnavailable:
-				return errors.Wrap(err, util.NewCannotCompleteError(svrErr.BodyMessage))
-			}
-		}
-		return util.NewUnexpectedError(err)
-	}
-
-	var machine *Machine
-	err = json.Unmarshal(result, &machine)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	machine.Controller = m.Controller
-
-	m.updateFrom(machine)
-	return nil
-}
-
-// CreateNode implements Machine
-func (m *Machine) CreateNode(args CreateMachineNodeArgs) (*Node, error) {
-	if err := args.Validate(); err != nil {
-		return nil, errors.Trace(err)
-	}
-	d, err := m.Controller.CreateNode(CreateNodeArgs{
-		Hostname:     args.Hostname,
-		MACAddresses: []string{args.MACAddress},
-		Parent:       m.SystemID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	defer func(err *error) {
-		// If there is an error return, at least try to delete the node we just created.
-		if err != nil {
-			if innerErr := d.Delete(); innerErr != nil {
-				logger.Warningf("could not delete node %q", d.SystemID)
-			}
-		}
-	}(&err)
-
-	// Update the VLAN to use for the interface, if given.
-	vlanToUse := args.VLAN
-	if vlanToUse == nil && args.Subnet != nil {
-		vlanToUse = args.Subnet.VLAN
-	}
-
-	// There should be one interface created for each MAC Address, and since we
-	// only specified one, there should just be one response.
-	interfaces := d.InterfaceSet
-	if count := len(interfaces); count != 1 {
-		err := errors.Errorf("unexpected interface count for node: %d", count)
-		return nil, util.NewUnexpectedError(err)
-	}
-
-	if err := m.updateDeviceInterface(interfaces, args.InterfaceName, vlanToUse); err != nil {
-		return nil, err
-	}
-
-	if args.Subnet == nil {
-		return d, nil
-	}
-
-	if err := m.linkDeviceInterfaceToSubnet(interfaces, args.Subnet); err != nil {
-		return nil, err
-	}
-
-	return d, nil
 }
 
 func (m *Machine) updateDeviceInterface(interfaces []*NetworkInterface, nameToUse string, vlanToUse *VLAN) error {
@@ -232,34 +122,6 @@ func (m *Machine) linkDeviceInterfaceToSubnet(interfaces []*NetworkInterface, su
 	}
 
 	return nil
-}
-
-// SetOwnerData updates the key/value data stored for this object
-// with the Values passed in. Existing keys that aren't specified
-// in the map passed in will be left in place; to clear a key set
-// its value to "". All Owner data is cleared when the object is
-// released.
-func (m *Machine) SetOwnerData(ownerData map[string]string) error {
-	params := make(url.Values)
-	for key, value := range ownerData {
-		params.Add(key, value)
-	}
-	result, err := m.Controller.Post(m.ResourceURI, "set_owner_data", params)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	var machine *Machine
-	err = json.Unmarshal(result, &machine)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	m.updateFrom(machine)
-	return nil
-}
-
-func unmarshalMachines(obj []byte) {
 }
 
 type MachineInterface interface {
