@@ -3,10 +3,6 @@
 
 package v2
 
-import (
-	"github.com/juju/errors"
-)
-
 // MachineInterface represents a physical MachineInterface.
 type Machine struct {
 	ResourceURI string   `json:"resource_uri,omitempty"`
@@ -89,48 +85,4 @@ func (m *Machine) BlockDevice(id int) *BlockDevice {
 		}
 	}
 	return nil
-}
-
-func (m *Machine) updateDeviceInterface(interfaces []*NetworkInterface, nameToUse string, vlanToUse *VLAN) error {
-	iface := interfaces[0]
-
-	updateArgs := UpdateInterfaceArgs{}
-	updateArgs.Name = nameToUse
-
-	if vlanToUse != nil {
-		updateArgs.VLAN = vlanToUse
-	}
-
-	if err := iface.Update(updateArgs); err != nil {
-		return errors.Annotatef(err, "updating node interface %q failed", iface.Name)
-	}
-
-	return nil
-}
-
-func (m *Machine) linkDeviceInterfaceToSubnet(interfaces []*NetworkInterface, subnetToUse *Subnet) error {
-	iface := interfaces[0]
-
-	err := iface.LinkSubnet(LinkSubnetArgs{
-		Mode:   LinkModeStatic,
-		Subnet: subnetToUse,
-	})
-	if err != nil {
-		return errors.Annotatef(
-			err, "linking node interface %q to Subnet %q failed",
-			iface.Name, subnetToUse.CIDR)
-	}
-
-	return nil
-}
-
-// OwnerDataHolderInterface represents any maas object that can store key/value
-// data.
-type OwnerDataHolderInterface interface {
-	// SetOwnerData updates the key/value data stored for this object
-	// with the Values passed in. Existing keys that aren't specified
-	// in the map passed in will be left in place; to clear a key set
-	// its value to "". All Owner data is cleared when the object is
-	// released.
-	SetOwnerData(map[string]string) error
 }

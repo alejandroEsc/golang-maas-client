@@ -19,8 +19,6 @@ import (
 
 var server *client.SimpleTestServer
 
-const versionResponse = `{"version": "unknown", "subversion": "", "Capabilities": ["networks-management", "static-ipaddresses", "ipv6-deployment-ubuntu", "devices-management", "storage-deployment-ubuntu", "network-deployment-ubuntu"]}`
-
 type constraintMatchInfo map[string][]int
 
 func TestSupportedVersions(t *testing.T) {
@@ -975,23 +973,6 @@ func assertFile(t *testing.T, request *http.Request, filename, content string) {
 	bytes, err := ioutil.ReadAll(f)
 	assert.Nil(t, err)
 	assert.Equal(t, string(bytes), content)
-}
-
-// createTestServerController creates a ControllerInterface backed on to a test server
-// that has sufficient knowledge of versions and users to be able to create a
-// valid ControllerInterface.
-func createTestServerController(t *testing.T) (*client.SimpleTestServer, *Controller) {
-	server := client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
-	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
-	server.Start()
-
-	controller, err := NewController(ControllerArgs{
-		BaseURL: server.URL,
-		APIKey:  "fake:as:key",
-	})
-	assert.Nil(t, err)
-	return server, controller
 }
 
 func getController(t *testing.T) *Controller {

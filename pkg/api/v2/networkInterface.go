@@ -35,7 +35,6 @@ func (i *NetworkInterface) updateFrom(other *NetworkInterface) {
 	i.Children = other.Children
 }
 
-
 // InterfaceLinkMode is the type of the various Link Mode constants used for
 // LinkSubnetArgs.
 type InterfaceLinkMode string
@@ -48,4 +47,3 @@ func (i *NetworkInterface) linkForSubnet(st *Subnet) *Link {
 	}
 	return nil
 }
-

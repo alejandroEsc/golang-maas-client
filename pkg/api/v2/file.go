@@ -13,8 +13,7 @@ import (
 )
 
 type File struct {
-	Controller  *Controller `json:"-"`
-	ResourceURI string      `json:"resource_uri,string,omitempty"`
+	ResourceURI string `json:"resource_uri,string,omitempty"`
 	// Filename is the Name of the File. No Path, just the Filename.
 	Filename string `json:"Filename,string,omitempty"`
 	// AnonymousURI is a URL that can be used to retrieve the contents of the

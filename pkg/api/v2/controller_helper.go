@@ -7,11 +7,16 @@ import (
 	"net/http"
 	"net/url"
 
+	"fmt"
+
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/juju/errors"
-	"fmt"
 )
+
+// Consider creating an api helper tool for common v2 requests.
+type maashelper struct {
+}
 
 // GetFile returns a single File by its Filename.
 func (c *Controller) GetFile(filename string) (*File, error) {
@@ -32,7 +37,6 @@ func (c *Controller) GetFile(filename string) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	file.Controller = c
 	return &file, nil
 }
 
@@ -65,17 +69,11 @@ func (c *Controller) getFiles(prefix string) ([]File, error) {
 	}
 
 	var files []File
-	results := make([]File, 0)
 	err = json.Unmarshal(source, &files)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, f := range files {
-		f.Controller = c
-		results = append(results, f)
-	}
-	return results, nil
+	return files, nil
 }
 
 // Delete implements FileInterface.
@@ -536,19 +534,14 @@ func (c *Controller) LinkSubnet(i *NetworkInterface, args LinkSubnetArgs) error 
 	return nil
 }
 
-
 // Update the Name, mac address or VLAN.
 func (c *Controller) UpdateNetworkInterface(i *NetworkInterface, args UpdateInterfaceArgs) error {
 	var empty UpdateInterfaceArgs
-
 	if args == empty {
-		return nil
+		return fmt.Errorf("params are empty, and are required.")
 	}
 
-	params := util.NewURLParams()
-	params.MaybeAdd("Name", args.Name)
-	params.MaybeAdd("mac_address", args.MACAddress)
-	params.MaybeAddInt("VLAN", args.vlanID())
+	params := UpdateInterfaceParams(args)
 
 	source, err := c.Put(i.ResourceURI, params.Values)
 	if err != nil {
@@ -586,5 +579,37 @@ func (c *Controller) DeleteNetworkInterface(i *NetworkInterface) error {
 		}
 		return util.NewUnexpectedError(err)
 	}
+	return nil
+}
+
+func (c *Controller) linkDeviceInterfaceToSubnet(m *Machine, interfaces []*NetworkInterface, subnetToUse *Subnet) error {
+	iface := interfaces[0]
+	args := LinkSubnetArgs{
+		Mode:   LinkModeStatic,
+		Subnet: subnetToUse,
+	}
+
+	err := c.LinkSubnet(iface, args)
+	if err != nil {
+		return errors.Annotatef(
+			err, "linking node interface %q to Subnet %q failed",
+			iface.Name, subnetToUse.CIDR)
+	}
+
+	return nil
+}
+
+func (c *Controller) updateDeviceInterface(interfaces []*NetworkInterface, nameToUse string, vlanToUse *VLAN) error {
+	iface := interfaces[0]
+
+	args := UpdateInterfaceArgs{Name: nameToUse}
+	if vlanToUse != nil {
+		args.VLAN = *vlanToUse
+	}
+
+	if err := c.UpdateNetworkInterface(iface, args); err != nil {
+		return errors.Annotatef(err, "updating node interface %q failed", iface.Name)
+	}
+
 	return nil
 }

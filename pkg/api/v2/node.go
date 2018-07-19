@@ -7,10 +7,10 @@ package v2
 // Device represents some form of Node in maas.
 type Node struct {
 	// TODO: add domain
-	ResourceURI string      `json:"resource_uri,omitempty"`
-	SystemID    string      `json:"system_id,omitempty"`
-	Hostname    string      `json:"Hostname,omitempty"`
-	FQDN        string      `json:"FQDN,omitempty"`
+	ResourceURI string `json:"resource_uri,omitempty"`
+	SystemID    string `json:"system_id,omitempty"`
+	Hostname    string `json:"Hostname,omitempty"`
+	FQDN        string `json:"FQDN,omitempty"`
 	// Parent returns the SystemID of the Parent. Most often this will be a
 	// MachineInterface.
 	Parent string `json:"Parent,omitempty"`
@@ -23,4 +23,3 @@ type Node struct {
 	Tags         []string            `json:"tag_names,omitempty"`
 	Type         string              `json:"node_type_name,omitempty"`
 }
-

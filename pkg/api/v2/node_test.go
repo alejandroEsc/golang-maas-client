@@ -40,8 +40,10 @@ func TestReadNodes(t *testing.T) {
 }
 
 func TestNodeInterfaceSet(t *testing.T) {
-	server, node := getServerAndNode(t)
+	server, node, _ := getServeNodeAndController(t)
 	server.AddGetResponse(node.ResourceURI+"interfaces/", http.StatusOK, interfacesResponse)
+	defer server.Close()
+
 	ifaces := node.InterfaceSet
 	assert.Len(t, ifaces, 2)
 }
@@ -62,7 +64,7 @@ func TestNodeCreateInterface(t *testing.T) {
 	args := CreateNodeNetworkInterfaceArgs{
 		Name:       "eth43",
 		MACAddress: "some-mac-address",
-		VLAN:       &VLAN{ID: 33},
+		VLAN:       VLAN{ID: 33},
 		Tags:       []string{"foo", "bar"},
 	}
 
@@ -82,7 +84,7 @@ func minimalCreateInterfaceArgs() CreateNodeNetworkInterfaceArgs {
 	return CreateNodeNetworkInterfaceArgs{
 		Name:       "eth43",
 		MACAddress: "some-mac-address",
-		VLAN:       &VLAN{ID: 33},
+		VLAN:       VLAN{ID: 33},
 	}
 }
 
@@ -164,21 +166,9 @@ func TestNodeDeleteUnknown(t *testing.T) {
 	assert.True(t, util.IsUnexpectedError(err))
 }
 
-func getServerAndNode(t *testing.T) (*client.SimpleTestServer, *Node) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
-	server.Start()
-
-	devices, err := controller.Nodes(NodesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-	return server, &devices[0]
-}
-
 func getServeNodeAndController(t *testing.T) (*client.SimpleTestServer, *Node, *Controller) {
 	server, controller := createTestServerController(t)
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
-	server.Start()
 
 	devices, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)

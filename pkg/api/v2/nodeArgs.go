@@ -54,7 +54,7 @@ type CreateNodeNetworkInterfaceArgs struct {
 	// MACAddress is the MAC address of the interface (required).
 	MACAddress string
 	// VLAN is the untagged VLAN the interface is connected to (required).
-	VLAN *VLAN
+	VLAN VLAN
 	// Tags to attach to the interface (optional).
 	Tags []string
 	// MTU - Maximum transmission unit. (optional)

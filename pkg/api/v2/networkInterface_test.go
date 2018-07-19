@@ -48,60 +48,17 @@ func TestReadNeworkInterfaces(t *testing.T) {
 	checkNetworkInterface(t, &iface[0])
 }
 
-func TestNetworkInterfaceLinkSubnetArgs(t *testing.T) {
-	for _, test := range []struct {
-		args    LinkSubnetArgs
-		errText string
-	}{{
-		errText: "missing Mode not valid",
-	}, {
-		args:    LinkSubnetArgs{Mode: LinkModeDHCP},
-		errText: "missing Subnet not valid",
-	}, {
-		args:    LinkSubnetArgs{Mode: InterfaceLinkMode("foo")},
-		errText: `unknown Mode value ("foo") not valid`,
-	}, {
-		args: LinkSubnetArgs{Mode: LinkModeDHCP, Subnet: &Subnet{}},
-	}, {
-		args: LinkSubnetArgs{Mode: LinkModeStatic, Subnet: &Subnet{}},
-	}, {
-		args: LinkSubnetArgs{Mode: LinkModeLinkUp, Subnet: &Subnet{}},
-	}, {
-		args:    LinkSubnetArgs{Mode: LinkModeDHCP, Subnet: &Subnet{}, IPAddress: "10.10.10.10"},
-		errText: `setting IP Address when Mode is not LinkModeStatic not valid`,
-	}, {
-		args: LinkSubnetArgs{Mode: LinkModeStatic, Subnet: &Subnet{}, IPAddress: "10.10.10.10"},
-	}, {
-		args:    LinkSubnetArgs{Mode: LinkModeLinkUp, Subnet: &Subnet{}, IPAddress: "10.10.10.10"},
-		errText: `setting IP Address when Mode is not LinkModeStatic not valid`,
-	}, {
-		args:    LinkSubnetArgs{Mode: LinkModeDHCP, Subnet: &Subnet{}, DefaultGateway: true},
-		errText: `specifying DefaultGateway for Mode "DHCP" not valid`,
-	}, {
-		args: LinkSubnetArgs{Mode: LinkModeStatic, Subnet: &Subnet{}, DefaultGateway: true},
-	}, {
-		args:    LinkSubnetArgs{Mode: LinkModeLinkUp, Subnet: &Subnet{}, DefaultGateway: true},
-		errText: `specifying DefaultGateway for Mode "LINK_UP" not valid`,
-	}} {
-		err := test.args.Validate()
-		if test.errText == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.True(t, errors.IsNotValid(err))
-			assert.Equal(t, err.Error(), test.errText)
-		}
-	}
-}
-
 func TestNetworkInterfaceLinkSubnetValidates(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
-	err := iface.LinkSubnet(LinkSubnetArgs{})
+	server, iface, controller := getServerNewInterfaceAndController(t)
+	defer server.Close()
+
+	err := controller.LinkSubnet(iface, LinkSubnetArgs{})
 	assert.True(t, errors.IsNotValid(err))
 	assert.Equal(t, err.Error(), "missing Mode not valid")
 }
 
 func TestNetworkInterfaceLinkSubnetGood(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	// The changed information is there just for the test to show that the response
 	// is parsed and the interface updated
 	response := util.UpdateJSONMap(t, interfaceResponse, map[string]interface{}{
@@ -116,7 +73,7 @@ func TestNetworkInterfaceLinkSubnetGood(t *testing.T) {
 		IPAddress:      "10.10.10.10",
 		DefaultGateway: true,
 	}
-	err := iface.LinkSubnet(args)
+	err := controller.LinkSubnet(iface, args)
 	assert.Nil(t, err)
 	assert.Equal(t, iface.Name, "eth42")
 
@@ -129,43 +86,47 @@ func TestNetworkInterfaceLinkSubnetGood(t *testing.T) {
 }
 
 func TestNetworkInterfaceLinkSubnetMissing(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
+	defer server.Close()
+
 	args := LinkSubnetArgs{
 		Mode:   LinkModeStatic,
 		Subnet: &Subnet{ID: 42},
 	}
-	err := iface.LinkSubnet(args)
+	err := controller.LinkSubnet(iface, args)
 	assert.True(t, util.IsBadRequestError(err))
 }
 
 func TestNetworkInterfaceLinkSubnetForbidden(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPostResponse(iface.ResourceURI+"?op=link_subnet", http.StatusForbidden, "bad user")
 	defer server.Close()
+
 	args := LinkSubnetArgs{
 		Mode:   LinkModeStatic,
 		Subnet: &Subnet{ID: 42},
 	}
-	err := iface.LinkSubnet(args)
+	err := controller.LinkSubnet(iface, args)
 	assert.True(t, util.IsPermissionError(err))
 	assert.Equal(t, err.Error(), "bad user")
 }
 
 func TestNetworkInterfaceLinkSubnetNoAddressesAvailable(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPostResponse(iface.ResourceURI+"?op=link_subnet", http.StatusServiceUnavailable, "no addresses")
 	defer server.Close()
+
 	args := LinkSubnetArgs{
 		Mode:   LinkModeStatic,
 		Subnet: &Subnet{ID: 42},
 	}
-	err := iface.LinkSubnet(args)
+	err := controller.LinkSubnet(iface, args)
 	assert.True(t, util.IsCannotCompleteError(err))
 	assert.Equal(t, err.Error(), "no addresses")
 }
 
 func TestNetworkInterfaceLinkSubnetUnknown(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPostResponse(iface.ResourceURI+"?op=link_subnet", http.StatusMethodNotAllowed, "wat?")
 	defer server.Close()
 
@@ -173,34 +134,40 @@ func TestNetworkInterfaceLinkSubnetUnknown(t *testing.T) {
 		Mode:   LinkModeStatic,
 		Subnet: &Subnet{ID: 42},
 	}
-	err := iface.LinkSubnet(args)
+	err := controller.LinkSubnet(iface, args)
 	assert.True(t, util.IsUnexpectedError(err))
 	assert.Equal(t, err.Error(), "unexpected: ServerError: 405 Method Not Allowed (wat?)")
 }
 
 func TestNetworkInterfaceUnlinkSubnetValidates(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
-	err := iface.UnlinkSubnet(nil)
+	server, iface, controller := getServerNewInterfaceAndController(t)
+	defer server.Close()
+
+	err := controller.UnlinkSubnet(iface, nil)
 	assert.True(t, errors.IsNotValid(err))
 	assert.Equal(t, err.Error(), "missing Subnet not valid")
 }
 
 func TestNetworkInterfaceUnlinkSubnetNotLinked(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
-	err := iface.UnlinkSubnet(&Subnet{ID: 42})
+	server, iface, controller := getServerNewInterfaceAndController(t)
+	defer server.Close()
+
+	err := controller.UnlinkSubnet(iface, &Subnet{ID: 42})
 	assert.True(t, errors.IsNotValid(err))
 	assert.Equal(t, err.Error(), "unlinked Subnet not valid")
 }
 
 func TestNetworkInterfaceUnlinkSubnetGood(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	// The changed information is there just for the test to show that the response
 	// is parsed and the interface updated
 	response := util.UpdateJSONMap(t, interfaceResponse, map[string]interface{}{
 		"Name": "eth42",
 	})
 	server.AddPostResponse(iface.ResourceURI+"?op=unlink_subnet", http.StatusOK, response)
-	err := iface.UnlinkSubnet(&Subnet{ID: 1})
+	defer server.Close()
+
+	err := controller.UnlinkSubnet(iface, &Subnet{ID: 1})
 	assert.Nil(t, err)
 	assert.Equal(t, iface.Name, "eth42")
 
@@ -211,67 +178,75 @@ func TestNetworkInterfaceUnlinkSubnetGood(t *testing.T) {
 }
 
 func TestNetworkInterfaceUnlinkSubnetMissing(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
-	err := iface.UnlinkSubnet(&Subnet{ID: 1})
+	server, iface, controller := getServerNewInterfaceAndController(t)
+	defer server.Close()
+
+	err := controller.UnlinkSubnet(iface, &Subnet{ID: 1})
 	assert.True(t, util.IsBadRequestError(err))
 }
 
 func TestNetworkInterfaceUnlinkSubnetForbidden(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPostResponse(iface.ResourceURI+"?op=unlink_subnet", http.StatusForbidden, "bad user")
 	defer server.Close()
-	err := iface.UnlinkSubnet(&Subnet{ID: 1})
+
+	err := controller.UnlinkSubnet(iface, &Subnet{ID: 1})
 	assert.True(t, util.IsPermissionError(err))
 	assert.Equal(t, err.Error(), "bad user")
 }
 
 func TestNetworkInterfaceUnlinkSubnetUnknown(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPostResponse(iface.ResourceURI+"?op=unlink_subnet", http.StatusMethodNotAllowed, "wat?")
 	defer server.Close()
-	err := iface.UnlinkSubnet(&Subnet{ID: 1})
+
+	err := controller.UnlinkSubnet(iface, &Subnet{ID: 1})
 	assert.True(t, util.IsUnexpectedError(err))
 	assert.Equal(t, err.Error(), "unexpected: ServerError: 405 Method Not Allowed (wat?)")
 }
 
 func TestNetworkInterfaceUpdateNoChangeNoRequest(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	defer server.Close()
+
 	count := server.RequestCount()
-	err := iface.Update(UpdateInterfaceArgs{})
+	err := controller.UpdateNetworkInterface(iface, UpdateInterfaceArgs{})
 	assert.Nil(t, err)
 	assert.Equal(t, server.RequestCount(), count)
 }
 
 func TestNetworkInterfaceUpdateMissing(t *testing.T) {
-	_, iface := getServerAndNewInterface(t)
-	err := iface.Update(UpdateInterfaceArgs{Name: "eth2"})
+	_, iface, controller := getServerNewInterfaceAndController(t)
+	err := controller.UpdateNetworkInterface(iface, UpdateInterfaceArgs{Name: "eth2"})
 	assert.True(t, util.IsNoMatchError(err))
 }
 
 func TestInterfaceUpdateForbidden(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPutResponse(iface.ResourceURI, http.StatusForbidden, "bad user")
 	defer server.Close()
-	err := iface.Update(UpdateInterfaceArgs{Name: "eth2"})
+
+	err := controller.UpdateNetworkInterface(iface, UpdateInterfaceArgs{Name: "eth2"})
 	assert.True(t, util.IsPermissionError(err))
 	assert.Equal(t, err.Error(), "bad user")
 }
 
 func TestNetworkInterfaceUpdateUnknown(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	server.AddPutResponse(iface.ResourceURI, http.StatusMethodNotAllowed, "wat?")
 	defer server.Close()
-	err := iface.Update(UpdateInterfaceArgs{Name: "eth2"})
+
+	err := controller.UpdateNetworkInterface(iface, UpdateInterfaceArgs{Name: "eth2"})
 	assert.True(t, util.IsUnexpectedError(err))
 	assert.Equal(t, err.Error(), "unexpected: ServerError: 405 Method Not Allowed (wat?)")
 }
 
 func TestNetworkInterfaceUpdateGood(t *testing.T) {
-	server, iface := getServerAndNewInterface(t)
+	server, iface, controller := getServerNewInterfaceAndController(t)
 	// The changed information is there just for the test to show that the response
 	// is parsed and the interface updated
 	defer server.Close()
+
 	response := util.UpdateJSONMap(t, interfaceResponse, map[string]interface{}{
 		"Name": "eth42",
 	})
@@ -279,9 +254,9 @@ func TestNetworkInterfaceUpdateGood(t *testing.T) {
 	args := UpdateInterfaceArgs{
 		Name:       "eth42",
 		MACAddress: "c3-52-51-b4-50-cd",
-		VLAN:       &VLAN{ID: 13},
+		VLAN:       VLAN{ID: 13},
 	}
-	err := iface.Update(args)
+	err := controller.UpdateNetworkInterface(iface, args)
 	assert.Nil(t, err)
 	assert.Equal(t, iface.Name, "eth42")
 
@@ -292,10 +267,9 @@ func TestNetworkInterfaceUpdateGood(t *testing.T) {
 	assert.Equal(t, form.Get("VLAN"), "13")
 }
 
-func getServerAndNewInterface(t *testing.T) (*client.SimpleTestServer, *NetworkInterface) {
+func getServerNewInterfaceAndController(t *testing.T) (*client.SimpleTestServer, *NetworkInterface, *Controller) {
 	server, controller := createTestServerController(t)
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
-	defer server.Close()
 
 	nodes, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)
@@ -303,7 +277,7 @@ func getServerAndNewInterface(t *testing.T) (*client.SimpleTestServer, *NetworkI
 	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusOK, interfaceResponse)
 	iface, err := controller.CreateInterface(&node, minimalCreateInterfaceArgs())
 	assert.Nil(t, err)
-	return server, iface
+	return server, iface, controller
 }
 
 func checkNetworkInterface(t *testing.T, iface *NetworkInterface) {
