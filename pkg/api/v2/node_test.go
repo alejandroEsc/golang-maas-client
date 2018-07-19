@@ -10,9 +10,7 @@ import (
 
 	"testing"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
-	"github.com/juju/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,14 +46,6 @@ func TestNodeInterfaceSet(t *testing.T) {
 	assert.Len(t, ifaces, 2)
 }
 
-func TestNodeCreateInterfaceValidates(t *testing.T) {
-	server, node, controller := getServeNodeAndController(t)
-	defer server.Close()
-
-	_, err := controller.CreateInterface(node, CreateNodeNetworkInterfaceArgs{})
-	assert.True(t, errors.IsNotValid(err))
-}
-
 func TestNodeCreateInterface(t *testing.T) {
 	server, node, controller := getServeNodeAndController(t)
 	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusOK, interfaceResponse)
@@ -74,24 +64,17 @@ func TestNodeCreateInterface(t *testing.T) {
 
 	request := server.LastRequest()
 	form := request.PostForm
-	assert.Equal(t, form.Get("Name"), "eth43")
-	assert.Equal(t, form.Get("mac_address"), "some-mac-address")
-	assert.Equal(t, form.Get("VLAN"), "33")
-	assert.Equal(t, form.Get("Tags"), "foo,bar")
-}
-
-func minimalCreateInterfaceArgs() CreateNodeNetworkInterfaceArgs {
-	return CreateNodeNetworkInterfaceArgs{
-		Name:       "eth43",
-		MACAddress: "some-mac-address",
-		VLAN:       VLAN{ID: 33},
-	}
+	assert.Equal(t, "eth43", form.Get("Name"))
+	assert.Equal(t, "some-mac-address", form.Get("mac_address"))
+	assert.Equal(t, "33", form.Get("VLAN"))
+	assert.Equal(t, "foo,bar", form.Get("Tags"))
 }
 
 func TestNodeCreateInterfaceNotFound(t *testing.T) {
 	server, node, controller := getServeNodeAndController(t)
 	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusNotFound, "can't find Node")
 	defer server.Close()
+
 	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsBadRequestError(err))
 	assert.Equal(t, err.Error(), "can't find Node")
@@ -143,7 +126,7 @@ func TestNodeDelete(t *testing.T) {
 }
 
 func TestNodeDelete404(t *testing.T) {
-	_, node, controller := getServeNodeAndController(t)
+	server, node, controller := getServeNodeAndController(t)
 	// No Path, so 404
 	defer server.Close()
 	err := controller.DeleteNode(node)
@@ -164,16 +147,6 @@ func TestNodeDeleteUnknown(t *testing.T) {
 	defer server.Close()
 	err := controller.DeleteNode(node)
 	assert.True(t, util.IsUnexpectedError(err))
-}
-
-func getServeNodeAndController(t *testing.T) (*client.SimpleTestServer, *Node, *Controller) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
-
-	devices, err := controller.Nodes(NodesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-	return server, &devices[0], controller
 }
 
 const (

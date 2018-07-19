@@ -17,8 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var server *client.SimpleTestServer
-
 type constraintMatchInfo map[string][]int
 
 func TestSupportedVersions(t *testing.T) {
@@ -29,12 +27,12 @@ func TestSupportedVersions(t *testing.T) {
 }
 
 func TestNewController(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
-	controller := getController(t)
+	controller := getController(t, server)
 
 	expectedCapabilities := set.NewStrings(
 		"networks-management",
@@ -51,7 +49,7 @@ func TestNewController(t *testing.T) {
 }
 
 func TestNewControllerBadAPIKeyFormat(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.Start()
 	defer server.Close()
 	_, err := NewController(ControllerArgs{
@@ -121,10 +119,14 @@ func TestNewControllerKnownVersion(t *testing.T) {
 }
 
 func TestNewControllerUnsupportedVersionSpecified(t *testing.T) {
+	server := client.NewSimpleServer()
 	// Ensure the server would actually respond to the version if it
 	// was asked.
 	server.AddGetResponse("/api/3.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.AddGetResponse("/api/3.0/version/", http.StatusOK, versionResponse)
+	server.Start()
+	defer server.Close()
+
 	// Using a server URL including a version that isn't in the known
 	// set should be denied.
 	controller, err := NewController(ControllerArgs{
@@ -197,7 +199,7 @@ func TestNewControllerWith194Bug(t *testing.T) {
 	// being logged in (rather than OAuth connection) it redirects you
 	// to the login page. This is fixed in 1.9.5, but we should work
 	// around it anyway. https://bugs.launchpad.net/maas/+bug/1583715
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, "the answer to all your prayers")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, "<html><head>")
 
@@ -214,7 +216,7 @@ func TestNewControllerWith194Bug(t *testing.T) {
 
 func TestControllerBootResources(t *testing.T) {
 	//t.Skipf("unknown failure %s", `Expected nil, but got: &url.Error{Op:"Get", URL:"http://127.0.0.1:53393/api/2.0/version/", Err:(*net.OpError)(0xc4202dc2d0)}`)
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/boot-resources/", http.StatusOK, bootResourcesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
@@ -227,35 +229,35 @@ func TestControllerBootResources(t *testing.T) {
 	//})
 	//assert.Nil(t, Controller)
 
-	controller := getController(t)
+	controller := getController(t, server)
 	resources, err := controller.BootResources()
 	assert.Nil(t, err)
 	assert.Len(t, resources, 5)
 }
 
 func TestControllerNodes(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	devices, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)
 	assert.Len(t, devices, 1)
 }
 
 func TestControllerNodesArgs(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	// This will fail with a 404 due to the test server not having something  at
 	// that address, but we don't care, all we want to do is capture the request
 	// and make sure that all the Values were set.
@@ -273,7 +275,7 @@ func TestControllerNodesArgs(t *testing.T) {
 }
 
 func TestControllerCreateNode(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
@@ -281,7 +283,7 @@ func TestControllerCreateNode(t *testing.T) {
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	device, err := controller.CreateNode(CreateNodeArgs{
 		MACAddresses: []string{"a-mac-address"},
 	})
@@ -290,28 +292,28 @@ func TestControllerCreateNode(t *testing.T) {
 }
 
 func TestControllerCreateNodeMissingAddress(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	_, err := controller.CreateNode(CreateNodeArgs{})
 	assert.True(t, util.IsBadRequestError(err))
 	assert.Equal(t, err.Error(), "at least one MAC address must be specified")
 }
 
 func TestControllerCreateNodeBadRequest(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusBadRequest, "some error")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	_, err := controller.CreateNode(CreateNodeArgs{
 		MACAddresses: []string{"a-mac-address"},
 	})
@@ -320,14 +322,14 @@ func TestControllerCreateNodeBadRequest(t *testing.T) {
 }
 
 func TestControllerCreateNodeArgs(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddPostResponse("/api/2.0/nodes/?op=", http.StatusOK, nodeResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	// Create an arg structure that sets all the Values.
 	args := CreateNodeArgs{
 		Hostname:     "foobar",
@@ -344,70 +346,70 @@ func TestControllerCreateNodeArgs(t *testing.T) {
 }
 
 func TestControllerFabrics(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/fabrics/", http.StatusOK, fabricResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	fabrics, err := controller.Fabrics()
 	assert.Nil(t, err)
 	assert.Len(t, fabrics, 2)
 }
 
 func TestControllerSpaces(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/spaces/", http.StatusOK, spacesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	spaces, err := controller.Spaces()
 	assert.Nil(t, err)
 	assert.Len(t, spaces, 1)
 }
 
 func TestControllerStaticRoutes(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/static-routes/", http.StatusOK, staticRoutesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	staticRoutes, err := controller.StaticRoutes()
 	assert.Nil(t, err)
 	assert.Len(t, staticRoutes, 1)
 }
 
 func TestControllerZones(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/zones/", http.StatusOK, zoneResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	zones, err := controller.Zones()
 	assert.Nil(t, err)
 	assert.Len(t, zones, 2)
 }
 
 func TestControllerMachines(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machines, err := controller.Machines(MachinesArgs{})
 	assert.Nil(t, err)
 	assert.Len(t, machines, 3)
@@ -416,14 +418,14 @@ func TestControllerMachines(t *testing.T) {
 func TestControllerMachinesFilter(t *testing.T) {
 	hostName := "untasted-markita"
 	response := "[" + machineResponse + "]"
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/machines/?Hostname="+hostName, http.StatusOK, response)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machines, err := controller.Machines(MachinesArgs{
 		Hostnames: []string{hostName},
 	})
@@ -433,7 +435,7 @@ func TestControllerMachinesFilter(t *testing.T) {
 }
 
 func TestControllerMachinesFilterWithOwnerData(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	//server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
 	server.AddGetResponse("/api/2.0/machines/?Hostname=untasted-markita", http.StatusOK, "["+machineResponse+"]")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
@@ -441,7 +443,7 @@ func TestControllerMachinesFilterWithOwnerData(t *testing.T) {
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machines, err := controller.Machines(MachinesArgs{
 		Hostnames: []string{"untasted-markita"},
 		OwnerData: map[string]string{
@@ -453,14 +455,14 @@ func TestControllerMachinesFilterWithOwnerData(t *testing.T) {
 }
 
 func TestControllerMachinesFilterWithOwnerData_MultipleMatches(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machines, err := controller.Machines(MachinesArgs{
 		OwnerData: map[string]string{
 			"braid": "jonathan blow",
@@ -473,14 +475,14 @@ func TestControllerMachinesFilterWithOwnerData_MultipleMatches(t *testing.T) {
 }
 
 func TestControllerMachinesFilterWithOwnerData_RequiresAllMatch(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machines, err := controller.Machines(MachinesArgs{
 		OwnerData: map[string]string{
 			"braid":          "jonathan blow",
@@ -493,14 +495,14 @@ func TestControllerMachinesFilterWithOwnerData_RequiresAllMatch(t *testing.T) {
 }
 
 func TestControllerMachinesArgs(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/machines/?Hostname=untasted-markita", http.StatusOK, "["+machineResponse+"]")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	// This will fail with a 404 due to the test server not having something  at
 	// that address, but we don't care, all we want to do is capture the request
 	// and make sure that all the Values were set.
@@ -518,21 +520,21 @@ func TestControllerMachinesArgs(t *testing.T) {
 }
 
 func TestControllerAllocateMachine(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	addAllocateResponse(t, http.StatusOK, nil, nil)
-	controller := getController(t)
+	addAllocateResponse(t, http.StatusOK, nil, nil, server)
+	controller := getController(t, server)
 	machine, _, err := controller.AllocateMachine(AllocateMachineArgs{})
 	assert.Nil(t, err)
 	assert.Equal(t, machine.SystemID, "4y3ha3")
 }
 
 func TestControllerAllocateMachineInterfacesMatch(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -540,8 +542,8 @@ func TestControllerAllocateMachineInterfacesMatch(t *testing.T) {
 
 	addAllocateResponse(t, http.StatusOK, constraintMatchInfo{
 		"database": []int{35, 99},
-	}, nil)
-	controller := getController(t)
+	}, nil, server)
+	controller := getController(t, server)
 	_, match, err := controller.AllocateMachine(AllocateMachineArgs{
 		// This isn't actually used, but here to show how it should be used.
 		Interfaces: []InterfaceSpec{{
@@ -558,7 +560,7 @@ func TestControllerAllocateMachineInterfacesMatch(t *testing.T) {
 }
 
 func TestControllerAllocateMachineInterfacesMatchMissing(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -567,9 +569,9 @@ func TestControllerAllocateMachineInterfacesMatchMissing(t *testing.T) {
 	// bug somewhere.
 	addAllocateResponse(t, http.StatusOK, constraintMatchInfo{
 		"database": []int{40},
-	}, nil)
+	}, nil, server)
 
-	controller := getController(t)
+	controller := getController(t, server)
 	_, _, err := controller.AllocateMachine(AllocateMachineArgs{
 		Interfaces: []InterfaceSpec{{
 			Label: "database",
@@ -580,16 +582,15 @@ func TestControllerAllocateMachineInterfacesMatchMissing(t *testing.T) {
 }
 
 func TestControllerAllocateMachineStorageMatches(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	addAllocateResponse(t, http.StatusOK, nil, constraintMatchInfo{
-		"root": []int{34, 98},
-	})
-	controller := getController(t)
+		"root": []int{34, 98}}, server)
+	controller := getController(t, server)
 	_, match, err := controller.AllocateMachine(AllocateMachineArgs{
 		Storage: []StorageSpec{{
 			Label: "root",
@@ -606,14 +607,14 @@ func TestControllerAllocateMachineStorageMatches(t *testing.T) {
 }
 
 func TestControllerAllocateMachineStorageLogicalMatches(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddPostResponse("/api/2.0/machines/?op=allocate", http.StatusOK, machineResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	machine, matches, err := controller.AllocateMachine(AllocateMachineArgs{
 		Storage: []StorageSpec{{
 			Tags: []string{"raid0"},
@@ -627,7 +628,7 @@ func TestControllerAllocateMachineStorageLogicalMatches(t *testing.T) {
 }
 
 func TestControllerAllocateMachineStorageMatchMissing(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -637,8 +638,8 @@ func TestControllerAllocateMachineStorageMatchMissing(t *testing.T) {
 	// bug somewhere.
 	addAllocateResponse(t, http.StatusOK, nil, constraintMatchInfo{
 		"root": []int{50},
-	})
-	controller := getController(t)
+	}, server)
+	controller := getController(t, server)
 	_, _, err := controller.AllocateMachine(AllocateMachineArgs{
 		Storage: []StorageSpec{{
 			Label: "root",
@@ -650,14 +651,14 @@ func TestControllerAllocateMachineStorageMatchMissing(t *testing.T) {
 }
 
 func TestControllerAllocateMachineArgsForm(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	addAllocateResponse(t, http.StatusOK, nil, nil)
-	controller := getController(t)
+	addAllocateResponse(t, http.StatusOK, nil, nil, server)
+	controller := getController(t, server)
 	// Create an arg structure that sets all the Values.
 	args := AllocateMachineArgs{
 		Hostname:     "foobar",
@@ -690,40 +691,40 @@ func TestControllerAllocateMachineArgsForm(t *testing.T) {
 }
 
 func TestControllerAllocateMachineNoMatch(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.AddPostResponse("/api/2.0/machines/?op=allocate", http.StatusConflict, "boo")
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	_, _, err := controller.AllocateMachine(AllocateMachineArgs{})
 	assert.True(t, util.IsNoMatchError(err))
 }
 
 func TestControllerAllocateMachineUnexpected(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/machines/?op=allocate", http.StatusBadRequest, "boo")
-	controller := getController(t)
+	controller := getController(t, server)
 	_, _, err := controller.AllocateMachine(AllocateMachineArgs{})
 	assert.True(t, util.IsUnexpectedError(err))
 }
 
 func TestControllerReleaseMachines(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddPostResponse("/api/2.0/machines/?op=release", http.StatusOK, "[]")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.ReleaseMachines(ReleaseMachinesArgs{
 		SystemIDs: []string{"this", "that"},
 		Comment:   "all good",
@@ -737,14 +738,14 @@ func TestControllerReleaseMachines(t *testing.T) {
 }
 
 func TestControllerReleaseMachinesBadRequest(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/machines/?op=release", http.StatusBadRequest, "unknown machines")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.ReleaseMachines(ReleaseMachinesArgs{
 		SystemIDs: []string{"this", "that"},
 	})
@@ -753,14 +754,14 @@ func TestControllerReleaseMachinesBadRequest(t *testing.T) {
 }
 
 func TestControllerReleaseMachinesForbidden(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/machines/?op=release", http.StatusForbidden, "bzzt denied")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.ReleaseMachines(ReleaseMachinesArgs{
 		SystemIDs: []string{"this", "that"},
 	})
@@ -769,14 +770,14 @@ func TestControllerReleaseMachinesForbidden(t *testing.T) {
 }
 
 func TestControllerReleaseMachinesConflict(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/machines/?op=release", http.StatusConflict, "MachineInterface busy")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.ReleaseMachines(ReleaseMachinesArgs{
 		SystemIDs: []string{"this", "that"},
 	})
@@ -785,14 +786,14 @@ func TestControllerReleaseMachinesConflict(t *testing.T) {
 }
 
 func TestControllerReleaseMachinesUnexpected(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/machines/?op=release", http.StatusBadGateway, "wat")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.ReleaseMachines(ReleaseMachinesArgs{
 		SystemIDs: []string{"this", "that"},
 	})
@@ -802,14 +803,14 @@ func TestControllerReleaseMachinesUnexpected(t *testing.T) {
 
 func TestControllerFiles(t *testing.T) {
 	t.Skip("skip until testing on real server.")
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/files/", http.StatusOK, filesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	files, err := controller.getFiles("")
 	assert.Nil(t, err)
 	assert.Len(t, files, 2)
@@ -823,14 +824,14 @@ func TestControllerFiles(t *testing.T) {
 
 func TestControllerGetFile(t *testing.T) {
 	t.Skip("skip until testing on real server.")
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddGetResponse("/api/2.0/files/testing/", http.StatusOK, fileResponse)
-	controller := getController(t)
+	controller := getController(t, server)
 	file, err := controller.GetFile("testing")
 	assert.Nil(t, err)
 
@@ -842,13 +843,13 @@ func TestControllerGetFile(t *testing.T) {
 }
 
 func TestControllerGetFileMissing(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	_, err := controller.GetFile("missing")
 	assert.True(t, util.IsNoMatchError(err))
 }
@@ -912,26 +913,26 @@ func TestControllerAddFileArgsValidate(t *testing.T) {
 }
 
 func TestControllerAddFileValidates(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.AddFile(AddFileArgs{})
 	assert.True(t, errors.IsNotValid(err))
 }
 
 func TestControllerAddFileContent(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
 	defer server.Close()
 
 	server.AddPostResponse("/api/2.0/files/?op=", http.StatusOK, "")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.AddFile(AddFileArgs{
 		Filename: "foo.txt",
 		Content:  []byte("foo"),
@@ -943,7 +944,7 @@ func TestControllerAddFileContent(t *testing.T) {
 }
 
 func TestControllerAddFileReader(t *testing.T) {
-	server = client.NewSimpleServer()
+	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -951,7 +952,7 @@ func TestControllerAddFileReader(t *testing.T) {
 
 	reader := bytes.NewBufferString("test\n extra over length ignored")
 	server.AddPostResponse("/api/2.0/files/?op=", http.StatusOK, "")
-	controller := getController(t)
+	controller := getController(t, server)
 	err := controller.AddFile(AddFileArgs{
 		Filename: "foo.txt",
 		Reader:   reader,
@@ -975,16 +976,8 @@ func assertFile(t *testing.T, request *http.Request, filename, content string) {
 	assert.Equal(t, string(bytes), content)
 }
 
-func getController(t *testing.T) *Controller {
-	controller, err := NewController(ControllerArgs{
-		BaseURL: server.URL,
-		APIKey:  "fake:as:key",
-	})
-	assert.Nil(t, err)
-	return controller
-}
 
-func addAllocateResponse(t *testing.T, status int, interfaceMatches, storageMatches constraintMatchInfo) {
+func addAllocateResponse(t *testing.T, status int, interfaceMatches, storageMatches constraintMatchInfo, server *client.SimpleTestServer) {
 	constraints := make(map[string]interface{})
 	if interfaceMatches != nil {
 		constraints["interfaces"] = interfaceMatches

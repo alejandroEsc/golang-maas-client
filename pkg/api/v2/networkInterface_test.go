@@ -10,7 +10,6 @@ import (
 
 	"testing"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/juju/errors"
 	"github.com/stretchr/testify/assert"
@@ -211,7 +210,7 @@ func TestNetworkInterfaceUpdateNoChangeNoRequest(t *testing.T) {
 
 	count := server.RequestCount()
 	err := controller.UpdateNetworkInterface(iface, UpdateInterfaceArgs{})
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Equal(t, server.RequestCount(), count)
 }
 
@@ -265,19 +264,6 @@ func TestNetworkInterfaceUpdateGood(t *testing.T) {
 	assert.Equal(t, form.Get("Name"), "eth42")
 	assert.Equal(t, form.Get("mac_address"), "c3-52-51-b4-50-cd")
 	assert.Equal(t, form.Get("VLAN"), "13")
-}
-
-func getServerNewInterfaceAndController(t *testing.T) (*client.SimpleTestServer, *NetworkInterface, *Controller) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
-
-	nodes, err := controller.Nodes(NodesArgs{})
-	assert.Nil(t, err)
-	node := nodes[0]
-	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusOK, interfaceResponse)
-	iface, err := controller.CreateInterface(&node, minimalCreateInterfaceArgs())
-	assert.Nil(t, err)
-	return server, iface, controller
 }
 
 func checkNetworkInterface(t *testing.T, iface *NetworkInterface) {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -100,13 +99,3 @@ func TestMachineSetOwnerData(t *testing.T) {
 	assert.EqualValues(t, form["empty"], []string{""})
 }
 
-func getMachineControllerAndServer(t *testing.T) (*client.SimpleTestServer, *Machine, *Controller) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, "["+machineResponse+"]")
-	machines, err := controller.Machines(MachinesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, machines, 1)
-	machine := machines[0]
-
-	return server, &machine, controller
-}
