@@ -9,7 +9,6 @@ import (
 
 	"encoding/json"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,32 +53,6 @@ func TestReadAllFromFiles(t *testing.T) {
 	content, err := controller.ReadFileContent(&file)
 	assert.Nil(t, err)
 	assert.Equal(t, "some Content\n", string(content))
-}
-
-func TestDeleteMissing(t *testing.T) {
-	// If we Get a File, but someone else deletes it first, we Get a ...
-	server, controller := createTestServerController(t)
-	defer server.Close()
-	server.AddGetResponse("/api/2.0/files/testing/", http.StatusOK, fileResponse)
-	server.AddDeleteResponse("/api/2.0/files/testing/", http.StatusNotFound, "")
-
-	file, err := controller.GetFile("testing")
-	assert.Nil(t, err)
-	err = controller.DeleteFile(file)
-	assert.True(t, util.IsNoMatchError(err))
-}
-
-func TestDelete(t *testing.T) {
-	// If we Get a File, but someone else deletes it first, we Get a ...
-	server, controller := createTestServerController(t)
-	defer server.Close()
-	server.AddGetResponse("/api/2.0/files/testing/", http.StatusOK, fileResponse)
-	server.AddDeleteResponse("/api/2.0/files/testing/", http.StatusOK, "")
-
-	file, err := controller.GetFile("testing")
-	assert.Nil(t, err)
-	err = controller.DeleteFile(file)
-	assert.True(t, util.IsNoMatchError(err))
 }
 
 const (

@@ -19,3 +19,18 @@ type ControllerInterface interface {
 
 	GetAPIVersionInfo() (set.Strings, error)
 }
+
+
+
+type ApiHelper interface {
+
+	// Files
+	GetFile(filename string) (*[]byte, error)
+	ReadFileContent(filename string) ([]byte, error)
+
+	// Fabrics
+	Fabrics() ([]byte, error)
+
+	//Spaces
+	Spaces() ([]byte, error)
+}

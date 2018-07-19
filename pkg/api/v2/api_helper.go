@@ -14,10 +14,6 @@ import (
 	"github.com/juju/errors"
 )
 
-// Consider creating an api helper tool for common v2 requests.
-type maashelper struct {
-}
-
 // GetFile returns a single File by its Filename.
 func (c *Controller) GetFile(filename string) (*File, error) {
 	if filename == "" {
@@ -74,23 +70,6 @@ func (c *Controller) getFiles(prefix string) ([]File, error) {
 		return nil, err
 	}
 	return files, nil
-}
-
-// Delete implements FileInterface.
-func (c *Controller) DeleteFile(f *File) error {
-	err := c.Delete(f.ResourceURI)
-	if err != nil {
-		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
-			switch svrErr.StatusCode {
-			case http.StatusNotFound:
-				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
-			case http.StatusForbidden:
-				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
-			}
-		}
-		return util.NewUnexpectedError(err)
-	}
-	return nil
 }
 
 // Fabrics returns the list of Fabrics defined in the maas ControllerInterface.
@@ -360,23 +339,6 @@ func (c *Controller) Deploy(m *Machine, args DeployMachineArgs) error {
 	return nil
 }
 
-// Delete implements Device.
-func (c *Controller) DeleteDevice(d Device) error {
-	err := c.Delete(d.ResourceURI)
-	if err != nil {
-		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
-			switch svrErr.StatusCode {
-			case http.StatusNotFound:
-				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
-			case http.StatusForbidden:
-				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
-			}
-		}
-		return util.NewUnexpectedError(err)
-	}
-	return nil
-}
-
 // Devices implements Controller.
 func (c *Controller) Devices(args DevicesArgs) ([]Device, error) {
 	params := GetDeviceParams(args)
@@ -416,23 +378,6 @@ func (c *Controller) SetOwnerData(m *Machine, ownerData map[string]string) error
 	}
 
 	m.updateFrom(machine)
-	return nil
-}
-
-// Delete implements NodeInterface.
-func (c *Controller) DeleteNode(n *Node) error {
-	err := c.Delete(n.ResourceURI)
-	if err != nil {
-		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
-			switch svrErr.StatusCode {
-			case http.StatusNotFound:
-				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
-			case http.StatusForbidden:
-				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
-			}
-		}
-		return util.NewUnexpectedError(err)
-	}
 	return nil
 }
 
@@ -563,23 +508,6 @@ func (c *Controller) UpdateNetworkInterface(i *NetworkInterface, args UpdateInte
 		return errors.Trace(err)
 	}
 	i.updateFrom(&response)
-	return nil
-}
-
-// Delete this interface.
-func (c *Controller) DeleteNetworkInterface(i *NetworkInterface) error {
-	err := c.Delete(i.ResourceURI)
-	if err != nil {
-		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
-			switch svrErr.StatusCode {
-			case http.StatusNotFound:
-				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
-			case http.StatusForbidden:
-				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
-			}
-		}
-		return util.NewUnexpectedError(err)
-	}
 	return nil
 }
 

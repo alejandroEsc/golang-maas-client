@@ -116,39 +116,6 @@ func TestNodeCreateInterfaceUnknown(t *testing.T) {
 	assert.Equal(t, err.Error(), "unexpected: ServerError: 405 Method Not Allowed (wat?)")
 }
 
-func TestNodeDelete(t *testing.T) {
-	server, node, controller := getServeNodeAndController(t)
-	// Successful delete is 204 - StatusNoContent
-	server.AddDeleteResponse(node.ResourceURI, http.StatusNoContent, "")
-	defer server.Close()
-	err := controller.DeleteNode(node)
-	assert.Nil(t, err)
-}
-
-func TestNodeDelete404(t *testing.T) {
-	server, node, controller := getServeNodeAndController(t)
-	// No Path, so 404
-	defer server.Close()
-	err := controller.DeleteNode(node)
-	assert.True(t, util.IsNoMatchError(err))
-}
-
-func TestNodeDeleteForbidden(t *testing.T) {
-	server, node, controller := getServeNodeAndController(t)
-	server.AddDeleteResponse(node.ResourceURI, http.StatusForbidden, "")
-	defer server.Close()
-	err := controller.DeleteNode(node)
-	assert.True(t, util.IsPermissionError(err))
-}
-
-func TestNodeDeleteUnknown(t *testing.T) {
-	server, node, controller := getServeNodeAndController(t)
-	server.AddDeleteResponse(node.ResourceURI, http.StatusConflict, "")
-	defer server.Close()
-	err := controller.DeleteNode(node)
-	assert.True(t, util.IsUnexpectedError(err))
-}
-
 const (
 	nodeResponse = `
     {

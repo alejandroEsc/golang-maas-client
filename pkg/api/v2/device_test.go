@@ -4,13 +4,10 @@
 package v2
 
 import (
-	"net/http"
-
 	"encoding/json"
 
 	"testing"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,56 +32,6 @@ func TestReadDevices(t *testing.T) {
 	zone := device.Zone
 	assert.NotNil(t, zone)
 	assert.Equal(t, "default", zone.Name)
-}
-
-func TestDeviceDelete(t *testing.T) {
-	server, controller := createTestServerController(t)
-	// Successful delete is 204 - StatusNoContent
-	server.AddGetResponse("/api/2.0/devices/", http.StatusOK, devicesResponse)
-	devices, err := controller.Devices(DevicesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-
-	server.AddDeleteResponse(devices[0].ResourceURI, http.StatusNoContent, "")
-	err = controller.DeleteDevice(devices[0])
-	assert.Nil(t, err)
-}
-
-func TestDeviceDelete404(t *testing.T) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/devices/", http.StatusOK, devicesResponse)
-	devices, err := controller.Devices(DevicesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-	// No Path, so 404
-	err = controller.DeleteDevice(devices[0])
-	assert.True(t, util.IsNoMatchError(err))
-}
-
-func TestDeviceDeleteForbidden(t *testing.T) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/devices/", http.StatusOK, devicesResponse)
-	devices, err := controller.Devices(DevicesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-
-	server.AddDeleteResponse(devices[0].ResourceURI, http.StatusForbidden, "")
-	err = controller.DeleteDevice(devices[0])
-	assert.True(t, util.IsPermissionError(err))
-}
-
-func TestDeviceDeleteUnknown(t *testing.T) {
-	server, controller := createTestServerController(t)
-	server.AddGetResponse("/api/2.0/devices/", http.StatusOK, devicesResponse)
-	devices, err := controller.Devices(DevicesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-
-	server.AddDeleteResponse(devices[0].ResourceURI, http.StatusConflict, "")
-	assert.Nil(t, err)
-	assert.Len(t, devices, 1)
-	err = controller.DeleteDevice(devices[0])
-	assert.True(t, util.IsUnexpectedError(err))
 }
 
 const (
