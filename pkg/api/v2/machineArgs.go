@@ -1,7 +1,6 @@
 package v2
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
@@ -73,18 +72,6 @@ type DeployMachineArgs struct {
 	InstallRackd bool
 }
 
-// CreatemachineDeviceArgs is an argument structure for Machine.CreateNode.
-// Only InterfaceName and MACAddress fields are required, the others are only
-// used if set. If Subnet and VLAN are both set, Subnet.VLAN() must match the
-// given VLAN. On failure, returns an error satisfying errors.IsNotValid().
-type CreateMachineNodeArgs struct {
-	Hostname      string
-	InterfaceName string
-	MACAddress    string
-	Subnet        *Subnet
-	VLAN          *VLAN
-}
-
 type CommissionMachineArgs struct {
 	EnableSSH            bool
 	SkipBMCConfig        bool
@@ -92,27 +79,6 @@ type CommissionMachineArgs struct {
 	SkipStorage          bool
 	CommissioningScripts string
 	TestingScript        string
-}
-
-// Validate ensures that all required Values are non-emtpy.
-func (a *CreateMachineNodeArgs) Validate() error {
-	if a.InterfaceName == "" {
-		return errors.NotValidf("missing InterfaceName")
-	}
-
-	if a.MACAddress == "" {
-		return errors.NotValidf("missing MACAddress")
-	}
-
-	if a.Subnet != nil && a.VLAN != nil && a.Subnet.VLAN != a.VLAN {
-		msg := fmt.Sprintf(
-			"given Subnet %q on VLAN %d does not match given VLAN %d",
-			a.Subnet.CIDR, a.Subnet.VLAN.ID, a.VLAN.ID,
-		)
-		return errors.NewNotValid(nil, msg)
-	}
-
-	return nil
 }
 
 // Validate makes sure that any labels specifed in Storage or Interfaces
@@ -227,7 +193,7 @@ func DeploytMachineParams(args DeployMachineArgs) *util.URLParams {
 	return params
 }
 
-func ComssionMachineParams(args CommissionMachineArgs) *util.URLParams {
+func CommissionMachineParams(args CommissionMachineArgs) *util.URLParams {
 	params := util.NewURLParams()
 	params.MaybeAddBool("enable_ssh", args.EnableSSH)
 	params.MaybeAddBool("skip_bmc_config", args.SkipBMCConfig)

@@ -40,56 +40,33 @@ func TestReadNodes(t *testing.T) {
 }
 
 func TestNodeInterfaceSet(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddGetResponse(device.interfacesURI(), http.StatusOK, interfacesResponse)
-	ifaces := device.InterfaceSet
+	server, node := getServerAndNode(t)
+	server.AddGetResponse(node.ResourceURI+"interfaces/", http.StatusOK, interfacesResponse)
+	ifaces := node.InterfaceSet
 	assert.Len(t, ifaces, 2)
 }
 
-func TestNodeCreateInterfaceArgsValidate(t *testing.T) {
-	for _, test := range []struct {
-		args    CreateInterfaceArgs
-		errText string
-	}{{
-		errText: "missing Name not valid",
-	}, {
-		args:    CreateInterfaceArgs{Name: "eth3"},
-		errText: "missing MACAddress not valid",
-	}, {
-		args:    CreateInterfaceArgs{Name: "eth3", MACAddress: "a-mac-address"},
-		errText: `missing VLAN not valid`,
-	}, {
-		args: CreateInterfaceArgs{Name: "eth3", MACAddress: "a-mac-address", VLAN: &VLAN{}},
-	}} {
-		err := test.args.Validate()
-		if test.errText == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.True(t, errors.IsNotValid(err))
-			assert.Equal(t, err.Error(), test.errText)
-		}
-	}
-}
-
 func TestNodeCreateInterfaceValidates(t *testing.T) {
-	_, device := getServerAndNode(t)
-	_, err := device.CreateInterface(CreateInterfaceArgs{})
+	server, node, controller := getServeNodeAndController(t)
+	defer server.Close()
+
+	_, err := controller.CreateInterface(node, CreateNodeNetworkInterfaceArgs{})
 	assert.True(t, errors.IsNotValid(err))
 }
 
 func TestNodeCreateInterface(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddPostResponse(device.interfacesURI()+"?op=create_physical", http.StatusOK, interfaceResponse)
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusOK, interfaceResponse)
 	defer server.Close()
 
-	args := CreateInterfaceArgs{
+	args := CreateNodeNetworkInterfaceArgs{
 		Name:       "eth43",
 		MACAddress: "some-mac-address",
 		VLAN:       &VLAN{ID: 33},
 		Tags:       []string{"foo", "bar"},
 	}
 
-	iface, err := device.CreateInterface(args)
+	iface, err := controller.CreateInterface(node, args)
 	assert.Nil(t, err)
 	assert.NotNil(t, iface)
 
@@ -101,8 +78,8 @@ func TestNodeCreateInterface(t *testing.T) {
 	assert.Equal(t, form.Get("Tags"), "foo,bar")
 }
 
-func minimalCreateInterfaceArgs() CreateInterfaceArgs {
-	return CreateInterfaceArgs{
+func minimalCreateInterfaceArgs() CreateNodeNetworkInterfaceArgs {
+	return CreateNodeNetworkInterfaceArgs{
 		Name:       "eth43",
 		MACAddress: "some-mac-address",
 		VLAN:       &VLAN{ID: 33},
@@ -110,82 +87,103 @@ func minimalCreateInterfaceArgs() CreateInterfaceArgs {
 }
 
 func TestNodeCreateInterfaceNotFound(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddPostResponse(device.interfacesURI()+"?op=create_physical", http.StatusNotFound, "can't find Node")
-	_, err := device.CreateInterface(minimalCreateInterfaceArgs())
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusNotFound, "can't find Node")
+	defer server.Close()
+	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsBadRequestError(err))
 	assert.Equal(t, err.Error(), "can't find Node")
 }
 
 func TestCreateInterfaceConflict(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddPostResponse(device.interfacesURI()+"?op=create_physical", http.StatusConflict, "Node not allocated")
-	_, err := device.CreateInterface(minimalCreateInterfaceArgs())
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusConflict, "Node not allocated")
+	defer server.Close()
+	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsBadRequestError(err))
 	assert.Equal(t, err.Error(), "Node not allocated")
 }
 
 func TestCreateInterfaceForbidden(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddPostResponse(device.interfacesURI()+"?op=create_physical", http.StatusForbidden, "Node not yours")
-	_, err := device.CreateInterface(minimalCreateInterfaceArgs())
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusForbidden, "Node not yours")
+	defer server.Close()
+	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsPermissionError(err))
 	assert.Equal(t, err.Error(), "Node not yours")
 }
 
 func TestCreateInterfaceServiceUnavailable(t *testing.T) {
-	server, Node := getServerAndNode(t)
-	server.AddPostResponse(Node.interfacesURI()+"?op=create_physical", http.StatusServiceUnavailable, "no ip addresses available")
-	_, err := Node.CreateInterface(minimalCreateInterfaceArgs())
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusServiceUnavailable, "no ip addresses available")
+	defer server.Close()
+	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsCannotCompleteError(err))
 	assert.Equal(t, err.Error(), "no ip addresses available")
 }
 
 func TestNodeCreateInterfaceUnknown(t *testing.T) {
-	server, node := getServerAndNode(t)
-	server.AddPostResponse(node.interfacesURI()+"?op=create_physical", http.StatusMethodNotAllowed, "wat?")
-	_, err := node.CreateInterface(minimalCreateInterfaceArgs())
+	server, node, controller := getServeNodeAndController(t)
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusMethodNotAllowed, "wat?")
+	defer server.Close()
+	_, err := controller.CreateInterface(node, minimalCreateInterfaceArgs())
 	assert.True(t, util.IsUnexpectedError(err))
 	assert.Equal(t, err.Error(), "unexpected: ServerError: 405 Method Not Allowed (wat?)")
 }
 
 func TestNodeDelete(t *testing.T) {
-	server, device := getServerAndNode(t)
+	server, node, controller := getServeNodeAndController(t)
 	// Successful delete is 204 - StatusNoContent
-	server.AddDeleteResponse(device.ResourceURI, http.StatusNoContent, "")
-	err := device.Delete()
+	server.AddDeleteResponse(node.ResourceURI, http.StatusNoContent, "")
+	defer server.Close()
+	err := controller.DeleteNode(node)
 	assert.Nil(t, err)
 }
 
 func TestNodeDelete404(t *testing.T) {
-	_, device := getServerAndNode(t)
+	_, node, controller := getServeNodeAndController(t)
 	// No Path, so 404
-	err := device.Delete()
+	defer server.Close()
+	err := controller.DeleteNode(node)
 	assert.True(t, util.IsNoMatchError(err))
 }
 
 func TestNodeDeleteForbidden(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddDeleteResponse(device.ResourceURI, http.StatusForbidden, "")
-	err := device.Delete()
+	server, node, controller := getServeNodeAndController(t)
+	server.AddDeleteResponse(node.ResourceURI, http.StatusForbidden, "")
+	defer server.Close()
+	err := controller.DeleteNode(node)
 	assert.True(t, util.IsPermissionError(err))
 }
 
 func TestNodeDeleteUnknown(t *testing.T) {
-	server, device := getServerAndNode(t)
-	server.AddDeleteResponse(device.ResourceURI, http.StatusConflict, "")
-	err := device.Delete()
+	server, node, controller := getServeNodeAndController(t)
+	server.AddDeleteResponse(node.ResourceURI, http.StatusConflict, "")
+	defer server.Close()
+	err := controller.DeleteNode(node)
 	assert.True(t, util.IsUnexpectedError(err))
 }
 
 func getServerAndNode(t *testing.T) (*client.SimpleTestServer, *Node) {
 	server, controller := createTestServerController(t)
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
+	server.Start()
 
 	devices, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)
 	assert.Len(t, devices, 1)
 	return server, &devices[0]
+}
+
+func getServeNodeAndController(t *testing.T) (*client.SimpleTestServer, *Node, *Controller) {
+	server, controller := createTestServerController(t)
+	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
+	server.Start()
+
+	devices, err := controller.Nodes(NodesArgs{})
+	assert.Nil(t, err)
+	assert.Len(t, devices, 1)
+	return server, &devices[0], controller
 }
 
 const (

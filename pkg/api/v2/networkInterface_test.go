@@ -48,39 +48,6 @@ func TestReadNeworkInterfaces(t *testing.T) {
 	checkNetworkInterface(t, &iface[0])
 }
 
-func TestNetworkInterfaceDelete(t *testing.T) {
-	server, iface := getServerAndNode(t)
-	// Successful Delete is 204 - StatusNoContent - We hope, would be consistent
-	// with node deletions.
-	server.AddDeleteResponse(iface.ResourceURI, http.StatusNoContent, "")
-	defer server.Close()
-	err := iface.Delete()
-	assert.Nil(t, err)
-}
-
-func TestNetworkInterfaceDelete404(t *testing.T) {
-	_, iface := getServerAndNode(t)
-	// No Path, so 404
-	err := iface.Delete()
-	assert.True(t, util.IsNoMatchError(err))
-}
-
-func TestNetworkInterfaceDeleteForbidden(t *testing.T) {
-	server, iface := getServerAndNode(t)
-	server.AddDeleteResponse(iface.ResourceURI, http.StatusForbidden, "")
-	defer server.Close()
-	err := iface.Delete()
-	assert.True(t, util.IsPermissionError(err))
-}
-
-func TestNetworkInterfaceDeleteUnknown(t *testing.T) {
-	server, iface := getServerAndNode(t)
-	server.AddDeleteResponse(iface.ResourceURI, http.StatusConflict, "")
-	defer server.Close()
-	err := iface.Delete()
-	assert.True(t, util.IsUnexpectedError(err))
-}
-
 func TestNetworkInterfaceLinkSubnetArgs(t *testing.T) {
 	for _, test := range []struct {
 		args    LinkSubnetArgs
@@ -141,6 +108,7 @@ func TestNetworkInterfaceLinkSubnetGood(t *testing.T) {
 		"Name": "eth42",
 	})
 	defer server.Close()
+
 	server.AddPostResponse(iface.ResourceURI+"?op=link_subnet", http.StatusOK, response)
 	args := LinkSubnetArgs{
 		Mode:           LinkModeStatic,
@@ -327,12 +295,13 @@ func TestNetworkInterfaceUpdateGood(t *testing.T) {
 func getServerAndNewInterface(t *testing.T) (*client.SimpleTestServer, *NetworkInterface) {
 	server, controller := createTestServerController(t)
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)
+	defer server.Close()
 
 	nodes, err := controller.Nodes(NodesArgs{})
 	assert.Nil(t, err)
 	node := nodes[0]
-	server.AddPostResponse(node.interfacesURI()+"?op=create_physical", http.StatusOK, interfaceResponse)
-	iface, err := node.CreateInterface(minimalCreateInterfaceArgs())
+	server.AddPostResponse(node.ResourceURI+"interfaces/?op=create_physical", http.StatusOK, interfaceResponse)
+	iface, err := controller.CreateInterface(&node, minimalCreateInterfaceArgs())
 	assert.Nil(t, err)
 	return server, iface
 }

@@ -6,12 +6,9 @@ package v2
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"testing"
 
-	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
-	"github.com/juju/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -93,73 +90,6 @@ func TestReadMachinesNilValues(t *testing.T) {
 	assert.Equal(t, machine.Architecture, "")
 	assert.Equal(t, machine.StatusMessage, "")
 	assert.Nil(t, machine.BootInterface)
-}
-
-func getServerAndMachine(t *testing.T) (*client.SimpleTestServer, *Machine) {
-	server, controller := createTestServerController(t)
-	// Just have machines return one MachineInterface
-	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, "["+machineResponse+"]")
-
-	machines, err := controller.Machines(MachinesArgs{})
-	assert.Nil(t, err)
-	assert.Len(t, machines, 1)
-	machine := machines[0]
-	return server, &machine
-}
-
-func TestCreateMachineNodeArgsValidate(t *testing.T) {
-	for _, test := range []struct {
-		args    CreateMachineNodeArgs
-		errText string
-	}{{
-		errText: "missing InterfaceName not valid",
-	}, {
-		args: CreateMachineNodeArgs{
-			InterfaceName: "eth1",
-		},
-		errText: `missing MACAddress not valid`,
-	}, {
-		args: CreateMachineNodeArgs{
-			InterfaceName: "eth1",
-			MACAddress:    "something",
-			Subnet: &Subnet{
-				CIDR: "1.2.3.4/5",
-				VLAN: &VLAN{ID: 42},
-			},
-			VLAN: &VLAN{ID: 10},
-		},
-		errText: `given Subnet "1.2.3.4/5" on VLAN 42 does not match given VLAN 10`,
-	}, {
-		args: CreateMachineNodeArgs{
-			Hostname:      "is-optional",
-			InterfaceName: "eth1",
-			MACAddress:    "something",
-			Subnet:        nil,
-			VLAN:          &VLAN{},
-		},
-	}, {
-		args: CreateMachineNodeArgs{
-			InterfaceName: "eth1",
-			MACAddress:    "something",
-			Subnet:        &Subnet{},
-			VLAN:          nil,
-		},
-	}, {
-		args: CreateMachineNodeArgs{
-			InterfaceName: "eth1",
-			MACAddress:    "something",
-			Subnet:        nil,
-			VLAN:          nil,
-		},
-	}} {
-		err := test.args.Validate()
-		if test.errText == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.True(t, errors.IsNotValid(err))
-			assert.Equal(t, err.Error(), test.errText)
-		}
-	}
 }
 
 func machineWithOwnerData(data string) string {

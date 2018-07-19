@@ -124,28 +124,6 @@ func (m *Machine) linkDeviceInterfaceToSubnet(interfaces []*NetworkInterface, su
 	return nil
 }
 
-type MachineInterface interface {
-	OwnerDataHolderInterface
-
-	// Nodes returns a list of devices that match the params and have
-	// this MachineInterface as the Parent.
-	Nodes(NodesArgs) ([]NodeInterface, error)
-
-	// NetworkInterface returns the interface for the MachineInterface that matches the ID
-	// specified. If there is no match, nil is returned.
-	Interface(id int) *NetworkInterface
-	// BlockDevice returns the block node for the MachineInterface that matches the
-	// ID specified. If there is no match, nil is returned.
-	BlockDevice(id int) BlockDevice
-
-	// Deploy the MachineInterface and install the operating system specified in the args.
-	Deploy(DeployMachineArgs) error
-
-	// CreateNode creates a new NodeInterface with this MachineInterface as the Parent.
-	// The node will have one interface that is linked to the specified Subnet.
-	CreateNode(CreateMachineNodeArgs) (NodeInterface, error)
-}
-
 // OwnerDataHolderInterface represents any maas object that can store key/value
 // data.
 type OwnerDataHolderInterface interface {

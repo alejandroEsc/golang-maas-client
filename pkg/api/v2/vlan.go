@@ -22,8 +22,6 @@ package v2
 // object in the Fabric will be associated to by default (unless otherwise
 // specified).
 type VLAN struct {
-	// Add the ControllerInterface in when we need to do things with the VLAN.
-	// ControllerInterface ControllerInterface
 	ResourceURI string `json:"resource_uri,omitempty"`
 	ID          int    `json:"ID,omitempty"`
 	Name        string `json:"Name,omitempty"`

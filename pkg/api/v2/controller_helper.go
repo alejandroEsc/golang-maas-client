@@ -10,6 +10,7 @@ import (
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/client"
 	"github.com/alejandroEsc/golang-maas-client/pkg/api/util"
 	"github.com/juju/errors"
+	"fmt"
 )
 
 // GetFile returns a single File by its Filename.
@@ -163,17 +164,13 @@ func (c *Controller) Nodes(args NodesArgs) ([]Node, error) {
 		return nil, util.NewUnexpectedError(err)
 	}
 
-	results := make([]Node, 0)
 	var nodes []Node
 	err = json.Unmarshal(source, &nodes)
 	if err != nil {
 		return nil, err
 	}
-	for _, d := range nodes {
-		d.Controller = c
-		results = append(results, d)
-	}
-	return results, nil
+
+	return nodes, nil
 }
 
 // CreateNode creates and returns a new NodeInterface.
@@ -183,7 +180,7 @@ func (c *Controller) CreateNode(args CreateNodeArgs) (*Node, error) {
 		return nil, util.NewBadRequestError("at least one MAC address must be specified")
 	}
 	params := CreateNodesParams(args)
-	result, err := c.Post("nodes", "", params.Values)
+	source, err := c.Post("nodes", "", params.Values)
 	if err != nil {
 		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
 			if svrErr.StatusCode == http.StatusBadRequest {
@@ -195,21 +192,10 @@ func (c *Controller) CreateNode(args CreateNodeArgs) (*Node, error) {
 	}
 
 	var d Node
-
-	iSet := make([]*NetworkInterface, 0)
-	err = json.Unmarshal(result, &d)
+	err = json.Unmarshal(source, &d)
 	if err != nil {
 		return nil, err
 	}
-	d.Controller = c
-
-	for _, i := range d.InterfaceSet {
-		i.Controller = c
-		iSet = append(iSet, i)
-	}
-
-	d.InterfaceSet = iSet
-
 	return &d, nil
 }
 
@@ -431,5 +417,174 @@ func (c *Controller) SetOwnerData(m *Machine, ownerData map[string]string) error
 	}
 
 	m.updateFrom(machine)
+	return nil
+}
+
+// Delete implements NodeInterface.
+func (c *Controller) DeleteNode(n *Node) error {
+	err := c.Delete(n.ResourceURI)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound:
+				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+	return nil
+}
+
+// CreateInterface implements NodeInterface.
+func (c *Controller) CreateInterface(d *Node, args CreateNodeNetworkInterfaceArgs) (*NetworkInterface, error) {
+	params := CreateNodeNetworkInterfaceParams(args)
+	result, err := c.Post(d.ResourceURI+"interfaces/", "create_physical", params.Values)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound, http.StatusConflict:
+				return nil, errors.Wrap(err, util.NewBadRequestError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return nil, errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			case http.StatusServiceUnavailable:
+				return nil, errors.Wrap(err, util.NewCannotCompleteError(svrErr.BodyMessage))
+			}
+		}
+		return nil, util.NewUnexpectedError(err)
+	}
+
+	var iface NetworkInterface
+	err = json.Unmarshal(result, &iface)
+	if err != nil {
+		return nil, err
+	}
+	d.InterfaceSet = append(d.InterfaceSet, &iface)
+	return &iface, nil
+}
+
+// UnlinkSubnet will remove the Link to the Subnet, and release the IP
+// address associated if there is one.
+func (c *Controller) UnlinkSubnet(i *NetworkInterface, s *Subnet) error {
+	if s == nil {
+		return errors.NotValidf("missing Subnet")
+	}
+	link := i.linkForSubnet(s)
+	if link == nil {
+		return errors.NotValidf("unlinked Subnet")
+	}
+	params := util.NewURLParams()
+	params.Values.Add("ID", fmt.Sprint(link.ID))
+	source, err := c.Post(i.ResourceURI, "unlink_subnet", params.Values)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound, http.StatusBadRequest:
+				return errors.Wrap(err, util.NewBadRequestError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+
+	var response NetworkInterface
+	err = json.Unmarshal(source, &response)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	i.updateFrom(&response)
+
+	return nil
+}
+
+// LinkSubnet will attempt to make this interface available on the specified
+// Subnet.
+func (c *Controller) LinkSubnet(i *NetworkInterface, args LinkSubnetArgs) error {
+	if err := args.Validate(); err != nil {
+		return errors.Trace(err)
+	}
+	params := util.NewURLParams()
+	params.Values.Add("Mode", string(args.Mode))
+	params.Values.Add("Subnet", fmt.Sprint(args.Subnet.ID))
+	params.MaybeAdd("ip_address", args.IPAddress)
+	params.MaybeAddBool("default_gateway", args.DefaultGateway)
+	source, err := c.Post(i.ResourceURI, "link_subnet", params.Values)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound, http.StatusBadRequest:
+				return errors.Wrap(err, util.NewBadRequestError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			case http.StatusServiceUnavailable:
+				return errors.Wrap(err, util.NewCannotCompleteError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+
+	var response NetworkInterface
+	err = json.Unmarshal(source, &response)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	i.updateFrom(&response)
+	return nil
+}
+
+
+// Update the Name, mac address or VLAN.
+func (c *Controller) UpdateNetworkInterface(i *NetworkInterface, args UpdateInterfaceArgs) error {
+	var empty UpdateInterfaceArgs
+
+	if args == empty {
+		return nil
+	}
+
+	params := util.NewURLParams()
+	params.MaybeAdd("Name", args.Name)
+	params.MaybeAdd("mac_address", args.MACAddress)
+	params.MaybeAddInt("VLAN", args.vlanID())
+
+	source, err := c.Put(i.ResourceURI, params.Values)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound:
+				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
+
+	var response NetworkInterface
+	err = json.Unmarshal(source, &response)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	i.updateFrom(&response)
+	return nil
+}
+
+// Delete this interface.
+func (c *Controller) DeleteNetworkInterface(i *NetworkInterface) error {
+	err := c.Delete(i.ResourceURI)
+	if err != nil {
+		if svrErr, ok := errors.Cause(err).(client.ServerError); ok {
+			switch svrErr.StatusCode {
+			case http.StatusNotFound:
+				return errors.Wrap(err, util.NewNoMatchError(svrErr.BodyMessage))
+			case http.StatusForbidden:
+				return errors.Wrap(err, util.NewPermissionError(svrErr.BodyMessage))
+			}
+		}
+		return util.NewUnexpectedError(err)
+	}
 	return nil
 }
