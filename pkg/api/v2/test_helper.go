@@ -25,7 +25,6 @@ func createTestServerController(t *testing.T) (*client.SimpleTestServer, *Contro
 	return server, controller
 }
 
-
 func getServeNodeAndController(t *testing.T) (*client.SimpleTestServer, *Node, *Controller) {
 	server, controller := createTestServerController(t)
 	server.AddGetResponse("/api/2.0/nodes/", http.StatusOK, nodesResponse)

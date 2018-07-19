@@ -5,18 +5,18 @@ package v2
 
 // NetworkInterface represents a physical or virtual network interface on a MachineInterface.
 type NetworkInterface struct {
-	ResourceURI  string      `json:"resource_uri,omitempty"`
-	ID           int         `json:"ID,omitempty"`
-	Name         string      `json:"Name,omitempty"`
-	Type         string      `json:"type,omitempty"`
-	Enabled      bool        `json:"Enabled,omitempty"`
-	Tags         []string    `json:"Tags,omitempty"`
-	VLAN         *VLAN       `json:"VLAN,omitempty"`
-	Links        []*Link     `json:"Links,omitempty"`
-	MACAddress   string      `json:"mac_address,omitempty"`
-	EffectiveMTU int         `json:"effective_mtu,omitempty"`
-	Parents      []string    `json:"Parents,omitempty"`
-	Children     []string    `json:"Children,omitempty"`
+	ResourceURI  string   `json:"resource_uri,omitempty"`
+	ID           int      `json:"ID,omitempty"`
+	Name         string   `json:"Name,omitempty"`
+	Type         string   `json:"type,omitempty"`
+	Enabled      bool     `json:"Enabled,omitempty"`
+	Tags         []string `json:"Tags,omitempty"`
+	VLAN         *VLAN    `json:"VLAN,omitempty"`
+	Links        []*Link  `json:"Links,omitempty"`
+	MACAddress   string   `json:"mac_address,omitempty"`
+	EffectiveMTU int      `json:"effective_mtu,omitempty"`
+	Parents      []string `json:"Parents,omitempty"`
+	Children     []string `json:"Children,omitempty"`
 }
 
 func (i *NetworkInterface) updateFrom(other *NetworkInterface) {

@@ -742,7 +742,6 @@ func TestControllerReleaseMachinesUnexpected(t *testing.T) {
 }
 
 func TestControllerFiles(t *testing.T) {
-	t.Skip("skip until testing on real server.")
 	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/files/", http.StatusOK, filesResponse)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
@@ -758,12 +757,10 @@ func TestControllerFiles(t *testing.T) {
 	file := files[0]
 	assert.Equal(t, file.Filename, "test")
 
-	assert.Equal(t, file.AnonymousURI.Scheme, "http")
-	assert.Equal(t, file.AnonymousURI.RequestURI(), "/maas/api/2.0/files/?op=get_by_key&key=3afba564-fb7d-11e5-932f-52540051bf22")
+	assert.Equal(t, file.AnonymousURI.RequestURI(), "/MAAS/api/2.0/files/?op=get_by_key&key=3afba564-fb7d-11e5-932f-52540051bf22")
 }
 
 func TestControllerGetFile(t *testing.T) {
-	t.Skip("skip until testing on real server.")
 	server := client.NewSimpleServer()
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
@@ -776,10 +773,8 @@ func TestControllerGetFile(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, file.Filename, "testing")
-
 	assert.Nil(t, err)
-	assert.Equal(t, file.AnonymousURI.Scheme, "http")
-	assert.Equal(t, file.AnonymousURI.RequestURI(), "/maas/api/2.0/files/?op=get_by_key&key=88e64b76-fb82-11e5-932f-52540051bf22")
+	assert.Equal(t, file.AnonymousURI.RequestURI(), "/MAAS/api/2.0/files/?op=get_by_key&key=88e64b76-fb82-11e5-932f-52540051bf22")
 }
 
 func TestControllerGetFileMissing(t *testing.T) {
@@ -792,64 +787,6 @@ func TestControllerGetFileMissing(t *testing.T) {
 	controller := getController(t, server)
 	_, err := controller.GetFile("missing")
 	assert.True(t, util.IsNoMatchError(err))
-}
-
-func TestControllerAddFileArgsValidate(t *testing.T) {
-	reader := bytes.NewBufferString("test")
-	for _, test := range []struct {
-		args    AddFileArgs
-		errText string
-	}{{
-		errText: "missing Filename not valid",
-	}, {
-		args:    AddFileArgs{Filename: "/foo"},
-		errText: `paths in Filename "/foo" not valid`,
-	}, {
-		args:    AddFileArgs{Filename: "a/foo"},
-		errText: `paths in Filename "a/foo" not valid`,
-	}, {
-		args:    AddFileArgs{Filename: "foo.txt"},
-		errText: `missing Content or Reader not valid`,
-	}, {
-		args: AddFileArgs{
-			Filename: "foo.txt",
-			Reader:   reader,
-		},
-		errText: `missing Length not valid`,
-	}, {
-		args: AddFileArgs{
-			Filename: "foo.txt",
-			Reader:   reader,
-			Length:   4,
-		},
-	}, {
-		args: AddFileArgs{
-			Filename: "foo.txt",
-			Content:  []byte("foo"),
-			Reader:   reader,
-		},
-		errText: `specifying Content and Reader not valid`,
-	}, {
-		args: AddFileArgs{
-			Filename: "foo.txt",
-			Content:  []byte("foo"),
-			Length:   20,
-		},
-		errText: `specifying Length and Content not valid`,
-	}, {
-		args: AddFileArgs{
-			Filename: "foo.txt",
-			Content:  []byte("foo"),
-		},
-	}} {
-		err := test.args.Validate()
-		if test.errText == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.True(t, errors.IsNotValid(err))
-			assert.EqualError(t, err, test.errText)
-		}
-	}
 }
 
 func TestControllerAddFileValidates(t *testing.T) {
@@ -915,7 +852,6 @@ func assertFile(t *testing.T, request *http.Request, filename, content string) {
 	assert.Nil(t, err)
 	assert.Equal(t, string(bytes), content)
 }
-
 
 func addAllocateResponse(t *testing.T, status int, interfaceMatches, storageMatches constraintMatchInfo, server *client.SimpleTestServer) {
 	constraints := make(map[string]interface{})

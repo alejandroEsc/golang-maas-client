@@ -98,4 +98,3 @@ func TestMachineSetOwnerData(t *testing.T) {
 	assert.EqualValues(t, form["draco"], []string{"malfoy"})
 	assert.EqualValues(t, form["empty"], []string{""})
 }
-
