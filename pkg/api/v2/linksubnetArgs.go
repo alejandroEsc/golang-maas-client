@@ -2,6 +2,12 @@ package v2
 
 import "github.com/juju/errors"
 
+
+// InterfaceLinkMode is the type of the various Link Mode constants used for
+// LinkSubnetArgs.
+type InterfaceLinkMode string
+
+
 const (
 	// LinkModeDHCP - Bring the interface up with DHCP on the given Subnet. Only
 	// one Subnet can be set to DHCP. If the Subnet is managed this interface

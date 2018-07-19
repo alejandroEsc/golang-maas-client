@@ -140,11 +140,11 @@ func (a *AllocateMachineArgs) notSubnets() []string {
 
 func MachinesParams(args MachinesArgs) *util.URLParams {
 	params := util.NewURLParams()
-	params.MaybeAddMany("Hostname", args.Hostnames)
+	params.MaybeAddMany("hostname", args.Hostnames)
 	params.MaybeAddMany("mac_address", args.MACAddresses)
-	params.MaybeAddMany("ID", args.SystemIDs)
+	params.MaybeAddMany("id", args.SystemIDs)
 	params.MaybeAdd("domain", args.Domain)
-	params.MaybeAdd("Zone", args.Zone)
+	params.MaybeAdd("zone", args.Zone)
 	params.MaybeAdd("agent_name", args.AgentName)
 	return params
 }

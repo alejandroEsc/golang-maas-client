@@ -204,6 +204,7 @@ func (c *Controller) Machines(args MachinesArgs) ([]Machine, error) {
 	if err != nil {
 		return nil, util.NewUnexpectedError(err)
 	}
+
 	var machines []Machine
 	err = json.Unmarshal(source, &machines)
 	if err != nil {

@@ -419,7 +419,7 @@ func TestControllerMachinesFilter(t *testing.T) {
 	hostName := "untasted-markita"
 	response := "[" + machineResponse + "]"
 	server := client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/machines/?Hostname="+hostName, http.StatusOK, response)
+	server.AddGetResponse("/api/2.0/machines/?hostname="+hostName, http.StatusOK, response)
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()
@@ -434,69 +434,9 @@ func TestControllerMachinesFilter(t *testing.T) {
 	assert.Equal(t, machines[0].Hostname, hostName)
 }
 
-func TestControllerMachinesFilterWithOwnerData(t *testing.T) {
-	server := client.NewSimpleServer()
-	//server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
-	server.AddGetResponse("/api/2.0/machines/?Hostname=untasted-markita", http.StatusOK, "["+machineResponse+"]")
-	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
-	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
-	server.Start()
-	defer server.Close()
-
-	controller := getController(t, server)
-	machines, err := controller.Machines(MachinesArgs{
-		Hostnames: []string{"untasted-markita"},
-		OwnerData: map[string]string{
-			"fez": "jim crawford",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Len(t, machines, 0)
-}
-
-func TestControllerMachinesFilterWithOwnerData_MultipleMatches(t *testing.T) {
-	server := client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
-	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
-	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
-	server.Start()
-	defer server.Close()
-
-	controller := getController(t, server)
-	machines, err := controller.Machines(MachinesArgs{
-		OwnerData: map[string]string{
-			"braid": "jonathan blow",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Len(t, machines, 2)
-	assert.Equal(t, machines[0].Hostname, "lowlier-glady")
-	assert.Equal(t, machines[1].Hostname, "icier-nina")
-}
-
-func TestControllerMachinesFilterWithOwnerData_RequiresAllMatch(t *testing.T) {
-	server := client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/machines/", http.StatusOK, machinesResponse)
-	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
-	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
-	server.Start()
-	defer server.Close()
-
-	controller := getController(t, server)
-	machines, err := controller.Machines(MachinesArgs{
-		OwnerData: map[string]string{
-			"braid":          "jonathan blow",
-			"frog-fractions": "jim crawford",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Len(t, machines, 1)
-	assert.Equal(t, machines[0].Hostname, "lowlier-glady")
-}
-
 func TestControllerMachinesArgs(t *testing.T) {
 	server := client.NewSimpleServer()
-	server.AddGetResponse("/api/2.0/machines/?Hostname=untasted-markita", http.StatusOK, "["+machineResponse+"]")
+	server.AddGetResponse("/api/2.0/machines/?hostname=untasted-markita", http.StatusOK, "["+machineResponse+"]")
 	server.AddGetResponse("/api/2.0/version/", http.StatusOK, versionResponse)
 	server.AddGetResponse("/api/2.0/users/?op=whoami", http.StatusOK, `"captain awesome"`)
 	server.Start()

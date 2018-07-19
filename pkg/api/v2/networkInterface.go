@@ -5,7 +5,6 @@ package v2
 
 // NetworkInterface represents a physical or virtual network interface on a MachineInterface.
 type NetworkInterface struct {
-	Controller   *Controller `json:"-"`
 	ResourceURI  string      `json:"resource_uri,omitempty"`
 	ID           int         `json:"ID,omitempty"`
 	Name         string      `json:"Name,omitempty"`
@@ -34,10 +33,6 @@ func (i *NetworkInterface) updateFrom(other *NetworkInterface) {
 	i.Parents = other.Parents
 	i.Children = other.Children
 }
-
-// InterfaceLinkMode is the type of the various Link Mode constants used for
-// LinkSubnetArgs.
-type InterfaceLinkMode string
 
 func (i *NetworkInterface) linkForSubnet(st *Subnet) *Link {
 	for _, link := range i.Links {

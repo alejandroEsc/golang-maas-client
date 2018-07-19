@@ -64,10 +64,10 @@ func TestNodeCreateInterface(t *testing.T) {
 
 	request := server.LastRequest()
 	form := request.PostForm
-	assert.Equal(t, "eth43", form.Get("Name"))
+	assert.Equal(t, "eth43", form.Get("name"))
 	assert.Equal(t, "some-mac-address", form.Get("mac_address"))
-	assert.Equal(t, "33", form.Get("VLAN"))
-	assert.Equal(t, "foo,bar", form.Get("Tags"))
+	assert.Equal(t, "33", form.Get("vlan"))
+	assert.Equal(t, "foo,bar", form.Get("tags"))
 }
 
 func TestNodeCreateInterfaceNotFound(t *testing.T) {
